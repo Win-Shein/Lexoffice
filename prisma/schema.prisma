@@ -1,0 +1,125 @@
+// Lexoffice-style German billing application
+// Prisma ORM 7 (new `prisma-client` generator + driver adapter)
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum TaxType {
+  STANDARD_19 // 19%
+  REDUCED_7 // 7%
+  EXEMPT_0 // 0% (Kleinunternehmer / Export)
+}
+
+model User {
+  id           String         @id @default(uuid())
+  email        String         @unique
+  name         String?
+  passwordHash String?
+  companyName  String?
+  address      String?
+  city         String?
+  postalCode   String?
+  country      String         @default("Deutschland")
+  phone        String?
+  taxNumber    String? // Steuernummer
+  vatId        String? // USt-IdNr.
+  iban         String?
+  bic          String?
+  bankName     String?
+  isSmallBiz   Boolean        @default(false) // §19 UStG Kleinunternehmer
+  invoiceSeq   Int            @default(0) // running number counter
+  invoices     Invoice[]
+  expenses     Expense[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Customer {
+  id        String    @id @default(uuid())
+  name      String
+  email     String?
+  address   String
+  city      String?
+  postalCode String?
+  country   String    @default("Deutschland")
+  vatId     String? // USt-IdNr.
+  invoices  Invoice[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Invoice {
+  id              String        @id @default(uuid())
+  invoiceNumber   String        @unique
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime
+  performanceDate DateTime      @default(now())
+
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  subtotalNet Float
+  vatRate     Float   @default(19.0)
+  vatAmount   Float
+  totalGross  Float
+
+  taxType         TaxType @default(STANDARD_19)
+  isSmallBiz      Boolean @default(false) // §19 UStG
+  isReverseCharge Boolean @default(false) // §13b UStG
+
+  notes           String?
+  status          InvoiceStatus @default(DRAFT)
+  paidAt          DateTime?
+  sentAt          DateTime?
+  items           InvoiceItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float
+  unit        String  @default("Stück")
+  unitPrice   Float
+  totalNet    Float
+  taxType     TaxType @default(STANDARD_19)
+}
+
+model Expense {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  description   String
+  vendor        String?
+  category      String   @default("Sonstiges")
+  documentNumber String? // Belegnummer
+  amountNet     Float
+  vatRate       Float    @default(19.0)
+  vatAmount     Float
+  amountGross   Float
+  date          DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
