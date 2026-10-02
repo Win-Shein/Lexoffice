@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { LoginForm } from "@/app/login/login-form";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { prisma } from "@/lib/db";
 import { getTranslator } from "@/lib/i18n/server";
 
 export default async function LoginPage() {
@@ -12,15 +13,30 @@ export default async function LoginPage() {
   if (session?.user) redirect("/dashboard");
 
   const { t } = await getTranslator();
+  const branding = await prisma.user.findFirst({
+    orderBy: { createdAt: "asc" },
+    select: { logoUrl: true, companyName: true },
+  });
+  const logoUrl = branding?.logoUrl ?? null;
+  const brandName = branding?.companyName?.trim() || "MMXeron";
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="relative hidden flex-col justify-between bg-slate-900 p-12 text-white lg:flex">
         <div className="flex items-center gap-2 text-lg font-semibold">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-            <FileText className="h-5 w-5" />
-          </div>
-          MMXeron
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt={brandName}
+              className="h-10 max-w-[160px] object-contain"
+            />
+          ) : (
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+              <FileText className="h-5 w-5" />
+            </div>
+          )}
+          <span>{brandName}</span>
         </div>
 
         <div className="space-y-6">
@@ -47,9 +63,26 @@ export default async function LoginPage() {
       </div>
 
       <div className="flex flex-col items-center justify-center p-8">
-        <div className="mb-6 flex w-full max-w-sm items-center justify-end gap-2">
-          <ThemeToggle />
-          <LanguageSwitcher />
+        <div className="mb-6 flex w-full max-w-sm items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2 text-lg font-semibold">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt={brandName}
+                className="h-8 max-w-[120px] object-contain"
+              />
+            ) : (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <FileText className="h-4 w-4" />
+              </div>
+            )}
+            <span className="truncate">{brandName}</span>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <ThemeToggle />
+            <LanguageSwitcher />
+          </div>
         </div>
         <div className="w-full max-w-sm space-y-8">
           <div className="space-y-2 text-center lg:text-left">
