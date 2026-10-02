@@ -150,13 +150,32 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     textAlign: "center",
   },
+  summaryTable: { marginTop: 16, borderTopWidth: 1, borderColor: "#e2e8f0" },
+  summaryHeader: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderColor: "#e2e8f0",
+    paddingVertical: 6,
+    backgroundColor: "#f8fafc",
+  },
+  summaryRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderColor: "#e2e8f0",
+    paddingVertical: 5,
+  },
+  sumNo: { width: "18%", paddingHorizontal: 4 },
+  sumDate: { width: "14%", paddingHorizontal: 4 },
+  sumCustomer: { width: "34%", paddingHorizontal: 4 },
+  sumStatus: { width: "14%", paddingHorizontal: 4 },
+  sumTotal: { width: "20%", textAlign: "right", paddingHorizontal: 4 },
 });
 
 function addressLine(parts: Array<string | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
+export function InvoicePage({ data }: { data: InvoicePdfData }) {
   const { seller, customer } = data;
 
   const sellerAddress = addressLine([
@@ -166,12 +185,7 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
   ]);
 
   return (
-    <Document
-      title={`Rechnung ${data.invoiceNumber}`}
-      author={seller.companyName}
-      subject={`Rechnung ${data.invoiceNumber}`}
-    >
-      <Page size="A4" style={styles.page}>
+    <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
           <View style={{ width: "60%" }}>
             <Text style={styles.company}>{seller.companyName}</Text>
@@ -312,7 +326,77 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
               .join(" · ")}
           </Text>
         </View>
+    </Page>
+  );
+}
+
+export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
+  return (
+    <Document
+      title={`Rechnung ${data.invoiceNumber}`}
+      author={data.seller.companyName}
+      subject={`Rechnung ${data.invoiceNumber}`}
+    >
+      <InvoicePage data={data} />
+    </Document>
+  );
+}
+
+export function BatchInvoicePdfDocument({
+  invoices,
+  title = "Rechnungsübersicht",
+}: {
+  invoices: InvoicePdfData[];
+  title?: string;
+}) {
+  const seller = invoices[0]?.seller;
+  const total = invoices.reduce((sum, invoice) => sum + invoice.totalGross, 0);
+
+  return (
+    <Document title={title} author={seller?.companyName ?? ""} subject={title}>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.headerRow}>
+          <View style={{ width: "60%" }}>
+            <Text style={styles.company}>{seller?.companyName ?? ""}</Text>
+          </View>
+          <View style={{ width: "38%", alignItems: "flex-end" }}>
+            <Text style={styles.title}>ÜBERSICHT</Text>
+          </View>
+        </View>
+
+        <Text style={styles.label}>{title.toUpperCase()}</Text>
+
+        <View style={styles.summaryTable}>
+          <View style={styles.summaryHeader}>
+            <Text style={[styles.headText, styles.sumNo]}>Rechnungsnr.</Text>
+            <Text style={[styles.headText, styles.sumDate]}>Datum</Text>
+            <Text style={[styles.headText, styles.sumCustomer]}>Kunde</Text>
+            <Text style={[styles.headText, styles.sumStatus]}>Status</Text>
+            <Text style={[styles.headText, styles.sumTotal]}>Gesamt</Text>
+          </View>
+          {invoices.map((invoice) => (
+            <View style={styles.summaryRow} key={invoice.invoiceNumber}>
+              <Text style={styles.sumNo}>{invoice.invoiceNumber}</Text>
+              <Text style={styles.sumDate}>{formatDate(invoice.issueDate)}</Text>
+              <Text style={styles.sumCustomer}>{invoice.customer.name}</Text>
+              <Text style={styles.sumStatus}>{invoice.status}</Text>
+              <Text style={styles.sumTotal}>{formatCurrency(invoice.totalGross)}</Text>
+            </View>
+          ))}
+          <View style={[styles.summaryRow, { borderBottomWidth: 0, paddingTop: 10 }]}>
+            <Text style={[styles.headText, { width: "80%", textAlign: "right" }]}>
+              Gesamt
+            </Text>
+            <Text style={[styles.sumTotal, { fontFamily: "Helvetica-Bold" }]}>
+              {formatCurrency(total)}
+            </Text>
+          </View>
+        </View>
       </Page>
+
+      {invoices.map((invoice) => (
+        <InvoicePage key={invoice.invoiceNumber} data={invoice} />
+      ))}
     </Document>
   );
 }

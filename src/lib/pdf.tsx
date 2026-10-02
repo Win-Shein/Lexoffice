@@ -4,23 +4,18 @@ import {
   InvoicePdfDocument,
   type InvoicePdfData,
 } from "@/components/invoice-pdf";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import {
   parseCustomerSnapshot,
   parseSellerSnapshot,
 } from "@/lib/invoice-snapshot";
 
-export async function buildInvoicePdfData(
-  invoiceId: string,
-  userId: string,
-): Promise<InvoicePdfData | null> {
-  const invoice = await prisma.invoice.findFirst({
-    where: { id: invoiceId, userId },
-    include: { customer: true, items: true, user: true },
-  });
+export type InvoiceWithPdfRelations = Prisma.InvoiceGetPayload<{
+  include: { customer: true; items: true; user: true };
+}>;
 
-  if (!invoice) return null;
-
+export function toInvoicePdfData(invoice: InvoiceWithPdfRelations): InvoicePdfData {
   // Prefer the immutable snapshot captured at issuance. This guarantees that
   // later edits to the customer or company settings do not alter an already
   // issued document (Revisionssicherheit).
@@ -75,6 +70,19 @@ export async function buildInvoicePdfData(
       taxType: item.taxType,
     })),
   };
+}
+
+export async function buildInvoicePdfData(
+  invoiceId: string,
+  userId: string,
+): Promise<InvoicePdfData | null> {
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: invoiceId, userId },
+    include: { customer: true, items: true, user: true },
+  });
+
+  if (!invoice) return null;
+  return toInvoicePdfData(invoice);
 }
 
 export async function generatePdfBuffer(invoiceId: string, userId: string) {

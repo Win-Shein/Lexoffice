@@ -3,8 +3,10 @@ import { Plus, Receipt, Tags } from "lucide-react";
 import { deleteExpense } from "@/actions/expense";
 import { requireUserId } from "@/auth";
 import { CategoryManagerDialog } from "@/components/category-manager-dialog";
+import { DateRangeFilter } from "@/components/date-range-filter";
 import { DeleteButton } from "@/components/delete-button";
 import { ExpenseDialog } from "@/components/expense-dialog";
+import { ExpenseExport } from "@/components/expense-export";
 import { MetricCard } from "@/components/metric-card";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -23,12 +25,33 @@ import { prisma } from "@/lib/db";
 import { formatCurrency, formatDate, toDateInputValue } from "@/lib/format";
 import { getTranslator } from "@/lib/i18n/server";
 
-export default async function ExpensesPage() {
+export default async function ExpensesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
   const userId = await requireUserId();
   const { t } = await getTranslator();
+  const { from: rawFrom, to: rawTo } = await searchParams;
+
+  const isValidDate = (value: string | undefined): value is string =>
+    typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const from = isValidDate(rawFrom) ? rawFrom : undefined;
+  const to = isValidDate(rawTo) ? rawTo : undefined;
+
+  const dateFilter =
+    from || to
+      ? {
+          date: {
+            ...(from ? { gte: new Date(`${from}T00:00:00.000Z`) } : {}),
+            ...(to ? { lte: new Date(`${to}T23:59:59.999Z`) } : {}),
+          },
+        }
+      : {};
+
   const [expenses, categories] = await Promise.all([
     prisma.expense.findMany({
-      where: { userId },
+      where: { userId, ...dateFilter },
       orderBy: { date: "desc" },
     }),
     prisma.category.findMany({
@@ -49,6 +72,7 @@ export default async function ExpensesPage() {
         title={t("expenses.title")}
         description={t("expenses.description", { count: expenses.length })}
       >
+        <ExpenseExport from={from} to={to} count={expenses.length} />
         <CategoryManagerDialog
           type={CategoryType.EXPENSE}
           trigger={
@@ -67,6 +91,13 @@ export default async function ExpensesPage() {
           }
         />
       </PageHeader>
+
+      <DateRangeFilter
+        key={`${from ?? ""}-${to ?? ""}`}
+        path="/expenses"
+        from={from}
+        to={to}
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <MetricCard

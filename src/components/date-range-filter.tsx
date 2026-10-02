@@ -7,25 +7,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function InvoiceDateFilter({
-  status,
+export function DateRangeFilter({
+  path,
   from,
   to,
+  extraParams,
 }: {
-  status: string;
+  path: string;
   from?: string;
   to?: string;
+  extraParams?: Record<string, string | undefined>;
 }) {
   const router = useRouter();
   const { t } = useI18n();
 
   function buildUrl(nextFrom?: string, nextTo?: string) {
     const params = new URLSearchParams();
-    if (status && status !== "all") params.set("status", status);
+    for (const [key, value] of Object.entries(extraParams ?? {})) {
+      if (value && value !== "all") params.set(key, value);
+    }
     if (nextFrom) params.set("from", nextFrom);
     if (nextTo) params.set("to", nextTo);
     const qs = params.toString();
-    return `/invoices${qs ? `?${qs}` : ""}`;
+    return `${path}${qs ? `?${qs}` : ""}`;
   }
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -42,11 +46,11 @@ export function InvoiceDateFilter({
       className="flex flex-wrap items-end gap-3 rounded-lg border border-border p-3"
     >
       <div className="space-y-1">
-        <Label htmlFor="invoice-from" className="text-xs">
-          {t("invoices.from")}
+        <Label htmlFor="filter-from" className="text-xs">
+          {t("common.from")}
         </Label>
         <Input
-          id="invoice-from"
+          id="filter-from"
           name="from"
           type="date"
           defaultValue={from ?? ""}
@@ -54,11 +58,11 @@ export function InvoiceDateFilter({
         />
       </div>
       <div className="space-y-1">
-        <Label htmlFor="invoice-to" className="text-xs">
-          {t("invoices.to")}
+        <Label htmlFor="filter-to" className="text-xs">
+          {t("common.to")}
         </Label>
         <Input
-          id="invoice-to"
+          id="filter-to"
           name="to"
           type="date"
           defaultValue={to ?? ""}
@@ -66,7 +70,7 @@ export function InvoiceDateFilter({
         />
       </div>
       <Button type="submit" variant="outline" size="sm">
-        {t("invoices.apply")}
+        {t("common.apply")}
       </Button>
       {from || to ? (
         <Button
@@ -75,7 +79,7 @@ export function InvoiceDateFilter({
           size="sm"
           onClick={() => router.push(buildUrl())}
         >
-          {t("invoices.reset")}
+          {t("common.reset")}
         </Button>
       ) : null}
     </form>

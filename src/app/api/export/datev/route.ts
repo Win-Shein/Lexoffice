@@ -3,13 +3,23 @@ import { exportDatevCsv } from "@/lib/datev-export";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+const isDate = (value: string | null): value is string =>
+  typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+
+export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return new Response("Nicht angemeldet", { status: 401 });
   }
 
-  const { csv, filename } = await exportDatevCsv(session.user.id);
+  const { searchParams } = new URL(request.url);
+  const fromParam = searchParams.get("from");
+  const toParam = searchParams.get("to");
+  const range: { from?: string; to?: string } = {};
+  if (isDate(fromParam)) range.from = fromParam;
+  if (isDate(toParam)) range.to = toParam;
+
+  const { csv, filename } = await exportDatevCsv(session.user.id, range);
 
   return new Response(`\uFEFF${csv}`, {
     headers: {

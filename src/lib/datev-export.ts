@@ -10,13 +10,27 @@ const EXPENSE_ACCOUNT = "4900";
 const DEBTORS_ACCOUNT = "10000";
 const CREDITORS_ACCOUNT = "10000";
 
-export async function exportDatevCsv(userId: string) {
+export async function exportDatevCsv(
+  userId: string,
+  range: { from?: string; to?: string } = {},
+) {
+  const dateFilter =
+    range.from || range.to
+      ? {
+          issueDate: {
+            ...(range.from ? { gte: new Date(`${range.from}T00:00:00.000Z`) } : {}),
+            ...(range.to ? { lte: new Date(`${range.to}T23:59:59.999Z`) } : {}),
+          },
+        }
+      : {};
+
   const [invoices, expenses] = await Promise.all([
     prisma.invoice.findMany({
       where: {
         userId,
         documentType: InvoiceDocumentType.INVOICE,
         status: { in: [InvoiceStatus.PAID, InvoiceStatus.SENT] },
+        ...dateFilter,
       },
       include: { customer: true },
       orderBy: { issueDate: "asc" },

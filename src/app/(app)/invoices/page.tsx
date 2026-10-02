@@ -1,8 +1,9 @@
-import { Download, FileText, Plus } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
 import Link from "next/link";
 
 import { requireUserId } from "@/auth";
-import { InvoiceDateFilter } from "@/components/invoice-date-filter";
+import { DateRangeFilter } from "@/components/date-range-filter";
+import { InvoiceExport } from "@/components/invoice-export";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -91,11 +92,12 @@ export default async function InvoicesPage({
           total: formatCurrency(total),
         })}
       >
-        <Button asChild variant="outline">
-          <Link href="/api/export/datev">
-            <Download className="h-4 w-4" /> {t("common.export")}
-          </Link>
-        </Button>
+        <InvoiceExport
+          status={activeFilter}
+          from={from}
+          to={to}
+          count={invoices.length}
+        />
         <Button asChild>
           <Link href="/invoices/new">
             <Plus className="h-4 w-4" /> {t("nav.newInvoice")}
@@ -120,9 +122,10 @@ export default async function InvoicesPage({
             </Link>
           ))}
         </div>
-        <InvoiceDateFilter
+        <DateRangeFilter
           key={`${activeFilter}-${from ?? ""}-${to ?? ""}`}
-          status={activeFilter}
+          path="/invoices"
+          extraParams={{ status: activeFilter }}
           from={from}
           to={to}
         />

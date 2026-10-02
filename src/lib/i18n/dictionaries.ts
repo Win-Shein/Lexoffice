@@ -22,6 +22,10 @@ export const de = {
   "common.back": "Zurück",
   "common.status": "Status",
   "common.no": "Nr.",
+  "common.from": "Von",
+  "common.to": "Bis",
+  "common.apply": "Anwenden",
+  "common.reset": "Zurücksetzen",
   "common.customer": "Kunde",
   "common.date": "Datum",
   "common.net": "Netto",
@@ -243,6 +247,7 @@ export const de = {
   "expenses.formHint": "Beleg erfassen – Beträge werden automatisch berechnet.",
   "expenses.created": "Ausgabe erfasst.",
   "expenses.confirmDelete": "Ausgabe „{name}“ löschen?",
+  "expenses.exportPdf": "PDF exportieren",
 
   // Settings
   "settings.title": "Einstellungen",
@@ -283,6 +288,12 @@ export const de = {
   "backup.locked":
     "Wiederherstellung nicht möglich: Es existieren festgeschriebene Rechnungen (GoBD).",
   "backup.tooLarge": "Die Datei ist zu groß (max. 10 MB).",
+
+  // Export
+  "export.format": "Format",
+  "export.datev": "DATEV (CSV)",
+  "export.pdf": "PDF (Sammel)",
+  "export.submit": "Exportieren",
 
   // Audit trail
   "audit.title": "Verlauf (Prüfpfad)",
@@ -358,6 +369,10 @@ export const en: Record<TranslationKey, string> = {
   "common.back": "Back",
   "common.status": "Status",
   "common.no": "No.",
+  "common.from": "From",
+  "common.to": "To",
+  "common.apply": "Apply",
+  "common.reset": "Reset",
   "common.customer": "Customer",
   "common.date": "Date",
   "common.net": "Net",
@@ -568,6 +583,7 @@ export const en: Record<TranslationKey, string> = {
   "expenses.formHint": "Record a receipt – amounts are calculated automatically.",
   "expenses.created": "Expense recorded.",
   "expenses.confirmDelete": "Delete expense “{name}”?",
+  "expenses.exportPdf": "Export PDF",
 
   "settings.title": "Settings",
   "settings.description": "Company and tax details for your invoices.",
@@ -605,6 +621,11 @@ export const en: Record<TranslationKey, string> = {
   "backup.locked":
     "Restore not possible: finalized invoices exist (GoBD).",
   "backup.tooLarge": "The file is too large (max. 10 MB).",
+
+  "export.format": "Format",
+  "export.datev": "DATEV (CSV)",
+  "export.pdf": "PDF (combined)",
+  "export.submit": "Export",
 
   "audit.title": "History (audit trail)",
   "audit.empty": "No history yet.",
