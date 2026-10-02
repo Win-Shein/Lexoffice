@@ -51,6 +51,7 @@ model User {
   iban         String?
   bic          String?
   bankName     String?
+  logoUrl      String? // company logo as data URL (or image URL)
   isSmallBiz   Boolean        @default(false) // §19 UStG Kleinunternehmer
   invoiceSeq   Int            @default(0) // running number counter
   creditNoteSeq Int           @default(0) // separate sequence for Stornorechnungen

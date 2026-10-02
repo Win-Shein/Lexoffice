@@ -16,6 +16,7 @@ export type SellerSnapshot = {
   iban: string | null;
   bic: string | null;
   bankName: string | null;
+  logoUrl: string | null;
 };
 
 export type CustomerSnapshot = {
@@ -41,6 +42,7 @@ type UserLike = {
   iban: string | null;
   bic: string | null;
   bankName: string | null;
+  logoUrl: string | null;
 };
 
 type CustomerLike = {
@@ -67,6 +69,7 @@ export function buildSellerSnapshot(user: UserLike): SellerSnapshot {
     iban: user.iban,
     bic: user.bic,
     bankName: user.bankName,
+    logoUrl: user.logoUrl,
   };
 }
 

@@ -36,6 +36,7 @@ export function toInvoicePdfData(invoice: InvoiceWithPdfRelations): InvoicePdfDa
     iban: invoice.user.iban,
     bic: invoice.user.bic,
     bankName: invoice.user.bankName,
+    logoUrl: invoice.user.logoUrl,
   };
 
   const customer = customerSnapshot ?? {

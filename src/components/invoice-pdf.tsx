@@ -1,5 +1,7 @@
+/* eslint-disable jsx-a11y/alt-text */
 import {
   Document,
+  Image,
   Page,
   StyleSheet,
   Text,
@@ -24,6 +26,7 @@ export type InvoicePdfSeller = {
   iban?: string | null;
   bic?: string | null;
   bankName?: string | null;
+  logoUrl?: string | null;
 };
 
 export type InvoicePdfCustomer = {
@@ -77,6 +80,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   company: { fontSize: 13, fontFamily: "Helvetica-Bold", marginBottom: 4 },
+  logo: { width: 40, height: 40, objectFit: "contain", marginRight: 8 },
   muted: { color: "#64748b" },
   small: { fontSize: 8.5, color: "#64748b" },
   title: { fontSize: 20, fontFamily: "Helvetica-Bold", marginBottom: 6 },
@@ -188,7 +192,10 @@ export function InvoicePage({ data }: { data: InvoicePdfData }) {
     <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
           <View style={{ width: "60%" }}>
-            <Text style={styles.company}>{seller.companyName}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              {seller.logoUrl ? <Image src={seller.logoUrl} style={styles.logo} /> : null}
+              <Text style={styles.company}>{seller.companyName}</Text>
+            </View>
             {sellerAddress ? <Text style={styles.small}>{sellerAddress}</Text> : null}
             {seller.phone ? <Text style={styles.small}>Tel: {seller.phone}</Text> : null}
             {seller.email ? <Text style={styles.small}>{seller.email}</Text> : null}
@@ -357,7 +364,10 @@ export function BatchInvoicePdfDocument({
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
           <View style={{ width: "60%" }}>
-            <Text style={styles.company}>{seller?.companyName ?? ""}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              {seller?.logoUrl ? <Image src={seller.logoUrl} style={styles.logo} /> : null}
+              <Text style={styles.company}>{seller?.companyName ?? ""}</Text>
+            </View>
           </View>
           <View style={{ width: "38%", alignItems: "flex-end" }}>
             <Text style={styles.title}>ÜBERSICHT</Text>

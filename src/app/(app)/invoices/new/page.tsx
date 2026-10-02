@@ -63,6 +63,7 @@ export default async function NewInvoicePage() {
           iban: user.iban,
           bic: user.bic,
           bankName: user.bankName,
+          logoUrl: user.logoUrl,
           isSmallBiz: user.isSmallBiz,
         }}
         defaults={{

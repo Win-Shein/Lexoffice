@@ -73,3 +73,33 @@ export async function updateSmallBiz(enabled: boolean): Promise<ActionResult> {
   revalidatePath("/dashboard");
   return { ok: true };
 }
+
+const LOGO_MAX_CHARS = 700_000; // ~512 KB binary
+const logoDataUrl = /^data:image\/(?:png|jpe?g|webp|gif|svg\+xml);base64,[a-z0-9+/=]+$/i;
+
+export async function updateLogo(dataUrl: string): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const { t } = await getTranslator();
+
+  if (typeof dataUrl !== "string" || !logoDataUrl.test(dataUrl)) {
+    return { ok: false, error: t("error.logoInvalid") };
+  }
+  if (dataUrl.length > LOGO_MAX_CHARS) {
+    return { ok: false, error: t("error.logoTooLarge") };
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { logoUrl: dataUrl } });
+
+  revalidatePath("/settings");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function removeLogo(): Promise<ActionResult> {
+  const userId = await requireUserId();
+  await prisma.user.update({ where: { id: userId }, data: { logoUrl: null } });
+
+  revalidatePath("/settings");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}

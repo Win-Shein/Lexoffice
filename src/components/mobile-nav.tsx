@@ -12,9 +12,11 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 export function MobileNav({
   userName,
   companyName,
+  logoUrl,
 }: {
   userName: string;
   companyName: string;
+  logoUrl?: string | null;
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -32,16 +34,26 @@ export function MobileNav({
           <SidebarContent
             userName={userName}
             companyName={companyName}
+            logoUrl={logoUrl}
             onNavigate={() => setOpen(false)}
           />
         </SheetContent>
       </Sheet>
 
-      <div className="flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <FileText className="h-4 w-4" />
-        </div>
-        <span className="text-sm font-semibold">MMXeron</span>
+      <div className="flex min-w-0 items-center gap-2">
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoUrl}
+            alt={companyName}
+            className="h-7 w-7 shrink-0 rounded-lg object-contain"
+          />
+        ) : (
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <FileText className="h-4 w-4" />
+          </div>
+        )}
+        <span className="truncate text-sm font-semibold">{companyName}</span>
       </div>
 
       <Button asChild variant="ghost" size="icon" aria-label={t("nav.newInvoice")}>

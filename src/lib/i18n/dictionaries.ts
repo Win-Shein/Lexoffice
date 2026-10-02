@@ -262,6 +262,15 @@ export const de = {
   "settings.smallBizDesc": "Aktiviert standardmäßig 0 % Umsatzsteuer für neue Rechnungen.",
   "settings.bank": "Bankverbindung",
   "settings.bankName": "Bank",
+  "settings.logo": "Firmenlogo",
+  "settings.logoDesc":
+    "Laden Sie Ihr Firmenlogo hoch. Es erscheint in der Navigation und auf Ihren Rechnungen.",
+  "settings.logoUpload": "Logo hochladen",
+  "settings.logoReplace": "Logo ersetzen",
+  "settings.logoRemove": "Entfernen",
+  "settings.logoHint": "PNG, JPG, WEBP oder SVG · max. 512 KB",
+  "settings.logoUpdated": "Logo gespeichert.",
+  "settings.logoRemoved": "Logo entfernt.",
   "settings.save": "Einstellungen speichern",
   "settings.saved": "Einstellungen gespeichert.",
 
@@ -331,6 +340,8 @@ export const de = {
   "error.categoryDefaultProtected":
     "Die Standardkategorie „Sonstiges“ kann nicht gelöscht werden.",
   "error.invalidParent": "Ungültige übergeordnete Kategorie.",
+  "error.logoInvalid": "Ungültige Bilddatei.",
+  "error.logoTooLarge": "Das Logo ist zu groß (max. 512 KB).",
   "error.invoiceSaveFailed": "Rechnung konnte nicht gespeichert werden.",
   "error.invoiceLocked":
     "Festgeschriebene Rechnungen können nicht gelöscht werden. Erstellen Sie eine Stornorechnung.",
@@ -597,6 +608,15 @@ export const en: Record<TranslationKey, string> = {
   "settings.smallBizDesc": "Enables 0% VAT for new invoices by default.",
   "settings.bank": "Bank details",
   "settings.bankName": "Bank",
+  "settings.logo": "Company logo",
+  "settings.logoDesc":
+    "Upload your company logo. It appears in the navigation and on your invoices.",
+  "settings.logoUpload": "Upload logo",
+  "settings.logoReplace": "Replace logo",
+  "settings.logoRemove": "Remove",
+  "settings.logoHint": "PNG, JPG, WEBP or SVG · max. 512 KB",
+  "settings.logoUpdated": "Logo saved.",
+  "settings.logoRemoved": "Logo removed.",
   "settings.save": "Save settings",
   "settings.saved": "Settings saved.",
 
@@ -659,6 +679,8 @@ export const en: Record<TranslationKey, string> = {
   "error.categoryExists": "Category already exists",
   "error.categoryDefaultProtected": "The default category “Sonstiges” cannot be deleted.",
   "error.invalidParent": "Invalid parent category.",
+  "error.logoInvalid": "Invalid image file.",
+  "error.logoTooLarge": "The logo is too large (max. 512 KB).",
   "error.invoiceSaveFailed": "Invoice could not be saved.",
   "error.invoiceLocked":
     "Finalized invoices cannot be deleted. Issue a credit note (Storno) instead.",

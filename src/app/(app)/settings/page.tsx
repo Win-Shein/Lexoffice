@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/auth";
 import { BackupCard } from "@/components/backup-card";
 import { ChangePasswordForm } from "@/components/change-password-form";
+import { LogoUpload } from "@/components/logo-upload";
 import { PageHeader } from "@/components/page-header";
 import { SettingsForm } from "@/components/settings-form";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,8 @@ export default async function SettingsPage() {
           isSmallBiz: user.isSmallBiz,
         }}
       />
+
+      <LogoUpload logoUrl={user.logoUrl} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <ChangePasswordForm />
