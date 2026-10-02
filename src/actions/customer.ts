@@ -19,7 +19,7 @@ const customerSchema = z.object({
 });
 
 export async function createCustomer(input: unknown): Promise<ActionResult> {
-  await requireUserId();
+  const userId = await requireUserId();
   const { t } = await getTranslator();
   const parsed = customerSchema.safeParse(input);
   if (!parsed.success) {
@@ -29,6 +29,7 @@ export async function createCustomer(input: unknown): Promise<ActionResult> {
 
   const customer = await prisma.customer.create({
     data: {
+      userId,
       name: data.name,
       email: data.email || null,
       address: data.address,
@@ -45,7 +46,7 @@ export async function createCustomer(input: unknown): Promise<ActionResult> {
 }
 
 export async function updateCustomer(id: string, input: unknown): Promise<ActionResult> {
-  await requireUserId();
+  const userId = await requireUserId();
   const { t } = await getTranslator();
   const parsed = customerSchema.safeParse(input);
   if (!parsed.success) {
@@ -53,7 +54,7 @@ export async function updateCustomer(id: string, input: unknown): Promise<Action
   }
   const data = parsed.data;
 
-  const existing = await prisma.customer.findUnique({ where: { id } });
+  const existing = await prisma.customer.findFirst({ where: { id, userId } });
   if (!existing) return { ok: false, error: t("error.customerNotFound") };
 
   await prisma.customer.update({
@@ -74,9 +75,12 @@ export async function updateCustomer(id: string, input: unknown): Promise<Action
 }
 
 export async function deleteCustomer(id: string): Promise<ActionResult> {
-  await requireUserId();
+  const userId = await requireUserId();
   const { t } = await getTranslator();
-  const invoiceCount = await prisma.invoice.count({ where: { customerId: id } });
+  const customer = await prisma.customer.findFirst({ where: { id, userId } });
+  if (!customer) return { ok: false, error: t("error.customerNotFound") };
+
+  const invoiceCount = await prisma.invoice.count({ where: { customerId: id, userId } });
   if (invoiceCount > 0) {
     return { ok: false, error: t("error.customerHasInvoices") };
   }

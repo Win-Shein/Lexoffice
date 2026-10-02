@@ -12,7 +12,7 @@ export default async function NewInvoicePage() {
 
   const { t } = await getTranslator();
   const [customers, items, nextInvoiceNumber] = await Promise.all([
-    prisma.customer.findMany({ orderBy: { name: "asc" } }),
+    prisma.customer.findMany({ where: { userId: user.id }, orderBy: { name: "asc" } }),
     prisma.item.findMany({
       where: { userId: user.id },
       orderBy: { name: "asc" },

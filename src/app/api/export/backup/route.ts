@@ -1,10 +1,11 @@
-import { getLocalUserId } from "@/auth";
+import { getAuthenticatedUserId } from "@/auth";
 import { BACKUP_APP, buildBackup } from "@/lib/backup";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  const userId = await getLocalUserId();
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return new Response("Nicht angemeldet", { status: 401 });
 
   const backup = await buildBackup(userId);
   const date = new Date().toISOString().slice(0, 10);

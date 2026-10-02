@@ -58,6 +58,11 @@ export async function isAuthenticated(): Promise<boolean> {
   return Boolean(session?.user?.id);
 }
 
+export async function getAuthenticatedUserId(): Promise<string | null> {
+  const session = await auth();
+  return session?.user?.id ?? null;
+}
+
 export async function requireUserId(): Promise<string> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -65,9 +70,6 @@ export async function requireUserId(): Promise<string> {
   }
   return session.user.id;
 }
-
-// Alias used by API routes and exports.
-export const getLocalUserId = requireUserId;
 
 export async function getCurrentUser() {
   const session = await auth();

@@ -1,4 +1,4 @@
-import { getLocalUserId } from "@/auth";
+import { getAuthenticatedUserId } from "@/auth";
 import { generatePdfBuffer } from "@/lib/pdf";
 
 export const runtime = "nodejs";
@@ -7,7 +7,9 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const userId = await getLocalUserId();
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return new Response("Nicht angemeldet", { status: 401 });
+
   const { id } = await params;
   const result = await generatePdfBuffer(id, userId);
 

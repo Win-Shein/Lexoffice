@@ -56,6 +56,7 @@ model User {
   invoiceSeq   Int            @default(0) // running number counter
   creditNoteSeq Int           @default(0) // separate sequence for Stornorechnungen
   invoices     Invoice[]
+  customers    Customer[]
   expenses     Expense[]
   items        Item[]
   categories   Category[]
@@ -66,6 +67,8 @@ model User {
 
 model Customer {
   id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
   name      String
   email     String?
   address   String
@@ -186,6 +189,9 @@ model Expense {
   vendor        String?
   category      String   @default("Sonstiges")
   documentNumber String? // Belegnummer
+  receiptData   String? // uploaded bill/receipt as data URL
+  receiptName   String?
+  receiptType   String?
   amountNet     Float
   vatRate       Float    @default(19.0)
   vatAmount     Float

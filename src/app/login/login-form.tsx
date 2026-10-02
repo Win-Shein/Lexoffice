@@ -26,7 +26,6 @@ export function LoginForm() {
           type="email"
           autoComplete="email"
           placeholder="name@example.com"
-          defaultValue="admin@lexoffice.de"
           required
         />
       </div>
@@ -39,7 +38,6 @@ export function LoginForm() {
           type="password"
           autoComplete="current-password"
           placeholder="••••••••"
-          defaultValue="admin1234"
           required
         />
       </div>

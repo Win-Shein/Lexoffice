@@ -114,8 +114,8 @@ export async function createInvoice(input: unknown): Promise<ActionResult> {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return { ok: false, error: t("error.userNotFound") };
 
-  const customerRecord = await prisma.customer.findUnique({
-    where: { id: data.customerId },
+  const customerRecord = await prisma.customer.findFirst({
+    where: { id: data.customerId, userId },
   });
   if (!customerRecord) {
     return { ok: false, error: t("error.customerNotFound") };

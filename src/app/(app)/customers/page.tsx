@@ -19,9 +19,10 @@ import { prisma } from "@/lib/db";
 import { getTranslator } from "@/lib/i18n/server";
 
 export default async function CustomersPage() {
-  await requireUserId();
+  const userId = await requireUserId();
   const { t } = await getTranslator();
   const customers = await prisma.customer.findMany({
+    where: { userId },
     include: { _count: { select: { invoices: true } } },
     orderBy: { name: "asc" },
   });

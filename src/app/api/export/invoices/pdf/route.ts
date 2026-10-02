@@ -2,7 +2,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
 
 import { BatchInvoicePdfDocument } from "@/components/invoice-pdf";
-import { getLocalUserId } from "@/auth";
+import { getAuthenticatedUserId } from "@/auth";
 import { InvoiceStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import { toInvoicePdfData } from "@/lib/pdf";
@@ -13,7 +13,8 @@ const isDate = (value: string | null): value is string =>
   typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 
 export async function GET(request: Request) {
-  const userId = await getLocalUserId();
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return new Response("Nicht angemeldet", { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const fromParam = searchParams.get("from");

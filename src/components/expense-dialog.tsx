@@ -1,8 +1,8 @@
 "use client";
 
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Paperclip, Save, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { createExpense } from "@/actions/expense";
@@ -59,6 +59,33 @@ export function ExpenseDialog({
       : CATEGORIES_FALLBACK.map((name) => ({ name, label: name }));
   const [category, setCategory] = useState(options[0]?.name ?? "Sonstiges");
   const [vatRate, setVatRate] = useState("19");
+  const [receipt, setReceipt] = useState<{
+    data: string;
+    name: string;
+    type: string;
+  } | null>(null);
+  const receiptInputRef = useRef<HTMLInputElement>(null);
+
+  function onReceiptChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const allowed = file.type.startsWith("image/") || file.type === "application/pdf";
+    if (!allowed) {
+      toast.error(t("error.receiptInvalid"));
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error(t("error.receiptTooLarge"));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () =>
+      setReceipt({ data: String(reader.result ?? ""), name: file.name, type: file.type });
+    reader.readAsDataURL(file);
+  }
 
   function onSubmit(formData: FormData) {
     const payload = {
@@ -66,6 +93,9 @@ export function ExpenseDialog({
       vendor: String(formData.get("vendor") ?? ""),
       category,
       documentNumber: String(formData.get("documentNumber") ?? ""),
+      receiptData: receipt?.data,
+      receiptName: receipt?.name,
+      receiptType: receipt?.type,
       amountNet: Number(String(formData.get("amountNet") ?? "0").replace(",", ".")) || 0,
       vatRate: Number(vatRate),
       date: String(formData.get("date") ?? defaultDate),
@@ -78,6 +108,7 @@ export function ExpenseDialog({
         return;
       }
       toast.success(t("expenses.created"));
+      setReceipt(null);
       setOpen(false);
       router.refresh();
     });
@@ -146,6 +177,44 @@ export function ExpenseDialog({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>{t("expenses.receipt")}</Label>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                ref={receiptInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={onReceiptChange}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => receiptInputRef.current?.click()}
+              >
+                <Paperclip className="h-4 w-4" /> {t("expenses.receiptUpload")}
+              </Button>
+              {receipt ? (
+                <>
+                  <span className="max-w-[200px] truncate text-xs text-muted-foreground">
+                    {receipt.name}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive"
+                    onClick={() => setReceipt(null)}
+                  >
+                    <X className="h-4 w-4" /> {t("expenses.receiptRemove")}
+                  </Button>
+                </>
+              ) : null}
+            </div>
+            <p className="text-xs text-muted-foreground">{t("expenses.receiptHint")}</p>
           </div>
 
           <DialogFooter>

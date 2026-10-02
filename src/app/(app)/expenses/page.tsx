@@ -9,6 +9,7 @@ import { ExpenseDialog } from "@/components/expense-dialog";
 import { ExpenseExport } from "@/components/expense-export";
 import { MetricCard } from "@/components/metric-card";
 import { PageHeader } from "@/components/page-header";
+import { ReceiptLink } from "@/components/receipt-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -135,13 +136,14 @@ export default async function ExpensesPage({
                   {t("common.vatShort")}
                 </TableHead>
                 <TableHead className="text-right">{t("common.gross")}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t("expenses.receipt")}</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
               {expenses.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="py-12 text-center text-muted-foreground">
                     <Receipt className="mx-auto mb-2 h-8 w-8 opacity-40" />
                     {t("expenses.empty")}
                   </TableCell>
@@ -170,6 +172,13 @@ export default async function ExpensesPage({
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {formatCurrency(expense.amountGross)}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {expense.receiptData ? (
+                        <ReceiptLink data={expense.receiptData} name={expense.receiptName} />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <DeleteButton

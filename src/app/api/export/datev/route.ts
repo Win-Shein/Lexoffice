@@ -1,4 +1,4 @@
-import { getLocalUserId } from "@/auth";
+import { getAuthenticatedUserId } from "@/auth";
 import { exportDatevCsv } from "@/lib/datev-export";
 
 export const runtime = "nodejs";
@@ -7,7 +7,8 @@ const isDate = (value: string | null): value is string =>
   typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 
 export async function GET(request: Request) {
-  const userId = await getLocalUserId();
+  const userId = await getAuthenticatedUserId();
+  if (!userId) return new Response("Nicht angemeldet", { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const fromParam = searchParams.get("from");

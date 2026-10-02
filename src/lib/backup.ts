@@ -68,6 +68,9 @@ const expenseSchema = z.object({
   vendor: z.string().nullable().optional(),
   category: z.string().default("Sonstiges"),
   documentNumber: z.string().nullable().optional(),
+  receiptData: z.string().nullable().optional(),
+  receiptName: z.string().nullable().optional(),
+  receiptType: z.string().nullable().optional(),
   amountNet: z.number(),
   vatRate: z.number(),
   vatAmount: z.number(),
@@ -117,7 +120,7 @@ export type RestoreResult =
 export async function buildBackup(userId: string): Promise<BackupPayload> {
   const [user, customers, invoices, expenses] = await Promise.all([
     prisma.user.findUniqueOrThrow({ where: { id: userId } }),
-    prisma.customer.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.customer.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
     prisma.invoice.findMany({
       where: { userId },
       include: { items: true },
@@ -201,6 +204,9 @@ export async function buildBackup(userId: string): Promise<BackupPayload> {
       vendor: expense.vendor,
       category: expense.category,
       documentNumber: expense.documentNumber,
+      receiptData: expense.receiptData,
+      receiptName: expense.receiptName,
+      receiptType: expense.receiptType,
       amountNet: expense.amountNet,
       vatRate: expense.vatRate,
       vatAmount: expense.vatAmount,
@@ -229,13 +235,14 @@ export async function restoreBackup(
     const counts = await prisma.$transaction(async (tx) => {
       await tx.expense.deleteMany({ where: { userId } });
       await tx.invoice.deleteMany({ where: { userId } });
-      await tx.customer.deleteMany({});
+      await tx.customer.deleteMany({ where: { userId } });
 
       const createdCustomers = [];
       for (const customer of data.customers) {
         createdCustomers.push(
           await tx.customer.create({
             data: {
+              userId,
               name: customer.name,
               email: customer.email ?? null,
               address: customer.address,
@@ -317,6 +324,9 @@ export async function restoreBackup(
             vendor: expense.vendor ?? null,
             category: expense.category,
             documentNumber: expense.documentNumber ?? null,
+            receiptData: expense.receiptData ?? null,
+            receiptName: expense.receiptName ?? null,
+            receiptType: expense.receiptType ?? null,
             amountNet: expense.amountNet,
             vatRate: expense.vatRate,
             vatAmount: expense.vatAmount,

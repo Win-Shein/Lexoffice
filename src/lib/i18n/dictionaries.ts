@@ -275,6 +275,11 @@ export const de = {
   "expenses.created": "Ausgabe erfasst.",
   "expenses.confirmDelete": "Ausgabe „{name}“ löschen?",
   "expenses.exportPdf": "PDF exportieren",
+  "expenses.receipt": "Beleg",
+  "expenses.receiptUpload": "Beleg hochladen",
+  "expenses.receiptHint": "Bild oder PDF, max. 3 MB",
+  "expenses.receiptRemove": "Beleg entfernen",
+  "expenses.receiptView": "Beleg ansehen",
 
   // Settings
   "settings.title": "Einstellungen",
@@ -371,6 +376,8 @@ export const de = {
   "error.invalidParent": "Ungültige übergeordnete Kategorie.",
   "error.logoInvalid": "Ungültige Bilddatei.",
   "error.logoTooLarge": "Das Logo ist zu groß (max. 512 KB).",
+  "error.receiptInvalid": "Ungültige Belegdatei (Bild oder PDF).",
+  "error.receiptTooLarge": "Der Beleg ist zu groß (max. 3 MB).",
   "error.invoiceSaveFailed": "Rechnung konnte nicht gespeichert werden.",
   "error.invoiceLocked":
     "Festgeschriebene Rechnungen können nicht gelöscht werden. Erstellen Sie eine Stornorechnung.",
@@ -649,6 +656,11 @@ export const en: Record<TranslationKey, string> = {
   "expenses.created": "Expense recorded.",
   "expenses.confirmDelete": "Delete expense “{name}”?",
   "expenses.exportPdf": "Export PDF",
+  "expenses.receipt": "Receipt",
+  "expenses.receiptUpload": "Upload receipt",
+  "expenses.receiptHint": "Image or PDF, max. 3 MB",
+  "expenses.receiptRemove": "Remove receipt",
+  "expenses.receiptView": "View receipt",
 
   "settings.title": "Settings",
   "settings.description": "Company and tax details for your invoices.",
@@ -737,6 +749,8 @@ export const en: Record<TranslationKey, string> = {
   "error.invalidParent": "Invalid parent category.",
   "error.logoInvalid": "Invalid image file.",
   "error.logoTooLarge": "The logo is too large (max. 512 KB).",
+  "error.receiptInvalid": "Invalid receipt file (image or PDF).",
+  "error.receiptTooLarge": "The receipt is too large (max. 3 MB).",
   "error.invoiceSaveFailed": "Invoice could not be saved.",
   "error.invoiceLocked":
     "Finalized invoices cannot be deleted. Issue a credit note (Storno) instead.",
