@@ -99,6 +99,10 @@ export const de = {
   "invoices.issued": "Ausgestellt",
   "invoices.due": "Fällig",
   "invoices.empty": "Keine Rechnungen gefunden.",
+  "invoices.from": "Von",
+  "invoices.to": "Bis",
+  "invoices.apply": "Anwenden",
+  "invoices.reset": "Zurücksetzen",
 
   // Invoice form
   "invoiceForm.details": "Rechnungsdetails",
@@ -424,6 +428,10 @@ export const en: Record<TranslationKey, string> = {
   "invoices.issued": "Issued",
   "invoices.due": "Due",
   "invoices.empty": "No invoices found.",
+  "invoices.from": "From",
+  "invoices.to": "To",
+  "invoices.apply": "Apply",
+  "invoices.reset": "Reset",
 
   "invoiceForm.details": "Invoice details",
   "invoiceForm.number": "Invoice number",

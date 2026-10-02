@@ -2,6 +2,7 @@ import { Download, FileText, Plus } from "lucide-react";
 import Link from "next/link";
 
 import { requireUserId } from "@/auth";
+import { InvoiceDateFilter } from "@/components/invoice-date-filter";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -32,11 +33,11 @@ const FILTERS: Array<{ value: string; key: TranslationKey }> = [
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; from?: string; to?: string }>;
 }) {
   const userId = await requireUserId();
   const { t } = await getTranslator();
-  const { status } = await searchParams;
+  const { status, from: rawFrom, to: rawTo } = await searchParams;
   const activeFilter = status ?? "all";
 
   const validStatus = Object.values(InvoiceStatus).includes(
@@ -45,13 +46,41 @@ export default async function InvoicesPage({
     ? (activeFilter as InvoiceStatus)
     : undefined;
 
+  const isValidDate = (value: string | undefined): value is string =>
+    typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const from = isValidDate(rawFrom) ? rawFrom : undefined;
+  const to = isValidDate(rawTo) ? rawTo : undefined;
+
+  const dateFilter =
+    from || to
+      ? {
+          issueDate: {
+            ...(from ? { gte: new Date(`${from}T00:00:00.000Z`) } : {}),
+            ...(to ? { lte: new Date(`${to}T23:59:59.999Z`) } : {}),
+          },
+        }
+      : {};
+
   const invoices = await prisma.invoice.findMany({
-    where: { userId, ...(validStatus ? { status: validStatus } : {}) },
+    where: {
+      userId,
+      ...(validStatus ? { status: validStatus } : {}),
+      ...dateFilter,
+    },
     include: { customer: true },
     orderBy: { issueDate: "desc" },
   });
 
   const total = invoices.reduce((sum, invoice) => sum + invoice.totalGross, 0);
+
+  const filterHref = (value: string) => {
+    const params = new URLSearchParams();
+    if (value !== "all") params.set("status", value);
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const qs = params.toString();
+    return qs ? `/invoices?${qs}` : "/invoices";
+  };
 
   return (
     <div className="space-y-6">
@@ -74,21 +103,29 @@ export default async function InvoicesPage({
         </Button>
       </PageHeader>
 
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map((filter) => (
-          <Link
-            key={filter.value}
-            href={filter.value === "all" ? "/invoices" : `/invoices?status=${filter.value}`}
-            className={cn(
-              "rounded-full border px-3 py-1 text-sm transition-colors",
-              activeFilter === filter.value
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:bg-muted",
-            )}
-          >
-            {t(filter.key)}
-          </Link>
-        ))}
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((filter) => (
+            <Link
+              key={filter.value}
+              href={filterHref(filter.value)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-sm transition-colors",
+                activeFilter === filter.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {t(filter.key)}
+            </Link>
+          ))}
+        </div>
+        <InvoiceDateFilter
+          key={`${activeFilter}-${from ?? ""}-${to ?? ""}`}
+          status={activeFilter}
+          from={from}
+          to={to}
+        />
       </div>
 
       <Card>
