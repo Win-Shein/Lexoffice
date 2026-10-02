@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { updateSettings } from "@/actions/settings";
+import { updateSettings, updateSmallBiz } from "@/actions/settings";
 import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +56,20 @@ export function SettingsForm({ data }: { data: SettingsData }) {
       const result = await updateSettings(payload);
       if (!result.ok) {
         toast.error(result.error);
+        return;
+      }
+      toast.success(t("settings.saved"));
+      router.refresh();
+    });
+  }
+
+  function onToggleSmallBiz(checked: boolean) {
+    setIsSmallBiz(checked);
+    startTransition(async () => {
+      const result = await updateSmallBiz(checked);
+      if (!result.ok) {
+        toast.error(result.error);
+        setIsSmallBiz(!checked);
         return;
       }
       toast.success(t("settings.saved"));
@@ -121,7 +135,7 @@ export function SettingsForm({ data }: { data: SettingsData }) {
             </div>
             <Switch
               checked={isSmallBiz}
-              onCheckedChange={setIsSmallBiz}
+              onCheckedChange={onToggleSmallBiz}
               aria-label={t("settings.smallBiz")}
             />
           </div>

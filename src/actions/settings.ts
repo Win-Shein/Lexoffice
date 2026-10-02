@@ -60,3 +60,16 @@ export async function updateSettings(input: unknown): Promise<ActionResult> {
   revalidatePath("/dashboard");
   return { ok: true };
 }
+
+export async function updateSmallBiz(enabled: boolean): Promise<ActionResult> {
+  const userId = await requireUserId();
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isSmallBiz: Boolean(enabled) },
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/invoices/new");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}

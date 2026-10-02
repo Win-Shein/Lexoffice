@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CategoryType } from "@/generated/prisma/enums";
+import { buildCategoryChoices } from "@/lib/category-options";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { getTranslator } from "@/lib/i18n/server";
@@ -33,10 +34,10 @@ export default async function ItemsPage() {
     prisma.category.findMany({
       where: { userId, type: CategoryType.ITEM },
       orderBy: { name: "asc" },
-      select: { name: true },
+      select: { id: true, name: true, parentId: true },
     }),
   ]);
-  const categoryNames = categories.map((category) => category.name);
+  const categoryChoices = buildCategoryChoices(categories);
 
   return (
     <div className="space-y-6">
@@ -53,7 +54,7 @@ export default async function ItemsPage() {
           }
         />
         <ItemDialog
-          categories={categoryNames}
+          categories={categoryChoices}
           trigger={
             <Button>
               <Plus className="h-4 w-4" /> {t("items.new")}
@@ -102,7 +103,7 @@ export default async function ItemsPage() {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <ItemDialog
-                          categories={categoryNames}
+                          categories={categoryChoices}
                           item={{
                             id: item.id,
                             name: item.name,

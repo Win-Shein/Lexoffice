@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CategoryType } from "@/generated/prisma/enums";
+import { buildCategoryChoices } from "@/lib/category-options";
 import { prisma } from "@/lib/db";
 import { formatCurrency, formatDate, toDateInputValue } from "@/lib/format";
 import { getTranslator } from "@/lib/i18n/server";
@@ -33,10 +34,10 @@ export default async function ExpensesPage() {
     prisma.category.findMany({
       where: { userId, type: CategoryType.EXPENSE },
       orderBy: { name: "asc" },
-      select: { name: true },
+      select: { id: true, name: true, parentId: true },
     }),
   ]);
-  const categoryNames = categories.map((category) => category.name);
+  const categoryChoices = buildCategoryChoices(categories);
 
   const net = expenses.reduce((sum, expense) => sum + expense.amountNet, 0);
   const vat = expenses.reduce((sum, expense) => sum + expense.vatAmount, 0);
@@ -58,7 +59,7 @@ export default async function ExpensesPage() {
         />
         <ExpenseDialog
           defaultDate={toDateInputValue(new Date())}
-          categories={categoryNames}
+          categories={categoryChoices}
           trigger={
             <Button>
               <Plus className="h-4 w-4" /> {t("expenses.new")}

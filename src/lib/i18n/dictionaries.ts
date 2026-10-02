@@ -217,6 +217,8 @@ export const de = {
   "categories.description": "Kategorien hinzufügen, umbenennen oder löschen.",
   "categories.new": "Neue Kategorie",
   "categories.namePlaceholder": "z. B. Dienstleistung",
+  "categories.parent": "Übergeordnete Kategorie",
+  "categories.noParent": "Keine (Hauptkategorie)",
   "categories.add": "Hinzufügen",
   "categories.loading": "Wird geladen…",
   "categories.empty": "Noch keine Kategorien.",
@@ -317,6 +319,7 @@ export const de = {
   "error.categoryExists": "Kategorie existiert bereits",
   "error.categoryDefaultProtected":
     "Die Standardkategorie „Sonstiges“ kann nicht gelöscht werden.",
+  "error.invalidParent": "Ungültige übergeordnete Kategorie.",
   "error.invoiceSaveFailed": "Rechnung konnte nicht gespeichert werden.",
   "error.invoiceLocked":
     "Festgeschriebene Rechnungen können nicht gelöscht werden. Erstellen Sie eine Stornorechnung.",
@@ -540,6 +543,8 @@ export const en: Record<TranslationKey, string> = {
   "categories.description": "Add, rename or delete categories.",
   "categories.new": "New category",
   "categories.namePlaceholder": "e.g. Service",
+  "categories.parent": "Parent category",
+  "categories.noParent": "None (top level)",
   "categories.add": "Add",
   "categories.loading": "Loading…",
   "categories.empty": "No categories yet.",
@@ -632,6 +637,7 @@ export const en: Record<TranslationKey, string> = {
   "error.categoryNotFound": "Category not found",
   "error.categoryExists": "Category already exists",
   "error.categoryDefaultProtected": "The default category “Sonstiges” cannot be deleted.",
+  "error.invalidParent": "Invalid parent category.",
   "error.invoiceSaveFailed": "Invoice could not be saved.",
   "error.invoiceLocked":
     "Finalized invoices cannot be deleted. Issue a credit note (Storno) instead.",

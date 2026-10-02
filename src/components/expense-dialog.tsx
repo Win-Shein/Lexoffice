@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { CategoryChoice } from "@/lib/category-options";
 
 const CATEGORIES_FALLBACK = [
   "Software",
@@ -46,14 +47,17 @@ export function ExpenseDialog({
 }: {
   trigger: React.ReactNode;
   defaultDate: string;
-  categories: string[];
+  categories: CategoryChoice[];
 }) {
   const router = useRouter();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const options = categories.length > 0 ? categories : CATEGORIES_FALLBACK;
-  const [category, setCategory] = useState(options[0] ?? "Sonstiges");
+  const options =
+    categories.length > 0
+      ? categories
+      : CATEGORIES_FALLBACK.map((name) => ({ name, label: name }));
+  const [category, setCategory] = useState(options[0]?.name ?? "Sonstiges");
   const [vatRate, setVatRate] = useState("19");
 
   function onSubmit(formData: FormData) {
@@ -112,8 +116,8 @@ export function ExpenseDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {options.map((entry) => (
-                    <SelectItem key={entry} value={entry}>
-                      {entry}
+                    <SelectItem key={entry.name} value={entry.name}>
+                      {entry.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

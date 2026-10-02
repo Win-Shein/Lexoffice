@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { CategoryChoice } from "@/lib/category-options";
 import {
   Select,
   SelectContent,
@@ -44,15 +45,18 @@ export function ItemDialog({
   trigger,
 }: {
   item?: ItemData;
-  categories: string[];
+  categories: CategoryChoice[];
   trigger: React.ReactNode;
 }) {
   const router = useRouter();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const options = categories.length > 0 ? categories : CATEGORIES_FALLBACK;
-  const [category, setCategory] = useState(item?.category ?? options[0]);
+  const options =
+    categories.length > 0
+      ? categories
+      : CATEGORIES_FALLBACK.map((name) => ({ name, label: name }));
+  const [category, setCategory] = useState(item?.category ?? options[0]?.name ?? "Sonstiges");
   const [taxType, setTaxType] = useState(item?.taxType ?? "STANDARD_19");
   const isEdit = Boolean(item);
 
@@ -103,8 +107,8 @@ export function ItemDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {options.map((entry) => (
-                    <SelectItem key={entry} value={entry}>
-                      {entry}
+                    <SelectItem key={entry.name} value={entry.name}>
+                      {entry.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
