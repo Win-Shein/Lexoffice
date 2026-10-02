@@ -1,4 +1,4 @@
-import { InvoiceStatus } from "@/generated/prisma/enums";
+import { InvoiceDocumentType, InvoiceStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 
 export type MonthlyPoint = {
@@ -33,12 +33,23 @@ export async function getDashboardData(userId: string) {
     prisma.expense.findMany({ where: { userId }, orderBy: { date: "desc" } }),
   ]);
 
-  const paid = invoices.filter((inv) => inv.status === InvoiceStatus.PAID);
+  // Credit notes (Stornorechnungen) are corrections, not revenue/receivables:
+  // a cancelled invoice is excluded and its credit note offsets nothing.
+  const paid = invoices.filter(
+    (inv) =>
+      inv.documentType === InvoiceDocumentType.INVOICE &&
+      inv.status === InvoiceStatus.PAID,
+  );
   const open = invoices.filter(
     (inv) =>
-      inv.status === InvoiceStatus.SENT || inv.status === InvoiceStatus.OVERDUE,
+      inv.documentType === InvoiceDocumentType.INVOICE &&
+      (inv.status === InvoiceStatus.SENT || inv.status === InvoiceStatus.OVERDUE),
   );
-  const overdue = invoices.filter((inv) => inv.status === InvoiceStatus.OVERDUE);
+  const overdue = invoices.filter(
+    (inv) =>
+      inv.documentType === InvoiceDocumentType.INVOICE &&
+      inv.status === InvoiceStatus.OVERDUE,
+  );
 
   const revenue = paid.reduce((sum, inv) => sum + inv.totalGross, 0);
   const expenseTotal = expenses.reduce((sum, exp) => sum + exp.amountGross, 0);

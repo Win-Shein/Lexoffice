@@ -46,6 +46,7 @@ async function main() {
   await prisma.invoice.deleteMany({ where: { userId: user.id } });
   await prisma.customer.deleteMany({});
   await prisma.category.deleteMany({ where: { userId: user.id } });
+  await prisma.auditLog.deleteMany({ where: { userId: user.id } });
 
   await prisma.category.createMany({
     data: [
@@ -176,6 +177,22 @@ async function main() {
     },
   ];
 
+  const sellerSnapshot = JSON.stringify({
+    companyName: user.companyName ?? user.name ?? "",
+    name: user.name,
+    address: user.address,
+    city: user.city,
+    postalCode: user.postalCode,
+    country: user.country,
+    phone: user.phone,
+    email: user.email,
+    taxNumber: user.taxNumber,
+    vatId: user.vatId,
+    iban: user.iban,
+    bic: user.bic,
+    bankName: user.bankName,
+  });
+
   let seq = 0;
   for (const inv of invoices) {
     const items = inv.items.map((item) => ({
@@ -187,6 +204,16 @@ async function main() {
     const vatAmount = eur(subtotalNet * (inv.vatRate / 100));
     const totalGross = eur(subtotalNet + vatAmount);
     seq += 1;
+
+    const finalized = inv.status !== "DRAFT";
+    const customerSnapshot = JSON.stringify({
+      name: inv.customer.name,
+      address: inv.customer.address,
+      city: inv.customer.city,
+      postalCode: inv.customer.postalCode,
+      country: inv.customer.country,
+      vatId: inv.customer.vatId,
+    });
 
     await prisma.invoice.create({
       data: {
@@ -205,6 +232,9 @@ async function main() {
         status: inv.status,
         paidAt: inv.paidAt ?? null,
         sentAt: inv.status === "DRAFT" ? null : inv.issueDate,
+        finalizedAt: finalized ? inv.issueDate : null,
+        sellerSnapshot: finalized ? sellerSnapshot : null,
+        customerSnapshot: finalized ? customerSnapshot : null,
         items: { create: items },
       },
     });

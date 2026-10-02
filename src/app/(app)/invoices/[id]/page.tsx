@@ -6,6 +6,7 @@ import { requireUserId } from "@/auth";
 import { InvoiceActions } from "@/components/invoice-actions";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,10 +17,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { InvoiceDocumentType } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
-import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
+import { formatCurrency, formatDate, formatDateTime, formatNumber } from "@/lib/format";
+import type { TranslationKey } from "@/lib/i18n/dictionaries";
+import { parseCustomerSnapshot } from "@/lib/invoice-snapshot";
 import { getTranslator } from "@/lib/i18n/server";
 import { KLEINBETRAG_LIMIT } from "@/lib/vat";
+
+const AUDIT_LABELS: Record<string, TranslationKey> = {
+  CREATE: "audit.CREATE",
+  ISSUE: "audit.ISSUE",
+  STATUS_CHANGE: "audit.STATUS_CHANGE",
+  DELETE: "audit.DELETE",
+  CREDIT_NOTE: "audit.CREDIT_NOTE",
+};
 
 export default async function InvoiceDetailPage({
   params,
@@ -32,10 +44,34 @@ export default async function InvoiceDetailPage({
 
   const invoice = await prisma.invoice.findFirst({
     where: { id, userId },
-    include: { customer: true, items: true, user: true },
+    include: {
+      customer: true,
+      items: true,
+      user: true,
+      corrections: { select: { id: true, invoiceNumber: true } },
+      originalInvoice: { select: { id: true, invoiceNumber: true } },
+    },
   });
 
   if (!invoice) notFound();
+
+  const auditLogs = await prisma.auditLog.findMany({
+    where: { userId, entity: "Invoice", entityId: invoice.id },
+    orderBy: { seq: "asc" },
+  });
+
+  const isCreditNote = invoice.documentType === InvoiceDocumentType.CREDIT_NOTE;
+
+  // Use the immutable snapshot captured at issuance so that later edits to the
+  // customer master data do not change an already issued document.
+  const displayCustomer = parseCustomerSnapshot(invoice.customerSnapshot) ?? {
+    name: invoice.customer.name,
+    address: invoice.customer.address,
+    city: invoice.customer.city,
+    postalCode: invoice.customer.postalCode,
+    country: invoice.customer.country,
+    vatId: invoice.customer.vatId,
+  };
 
   return (
     <div className="space-y-6">
@@ -47,13 +83,50 @@ export default async function InvoiceDetailPage({
         </Button>
         <PageHeader
           title={t("invoiceDetail.title", { number: invoice.invoiceNumber })}
-          description={invoice.customer.name}
+          description={displayCustomer.name}
         >
+          {isCreditNote ? (
+            <Badge variant="secondary">{t("invoiceDetail.creditNote")}</Badge>
+          ) : null}
           <StatusBadge status={invoice.status} />
         </PageHeader>
       </div>
 
-      <InvoiceActions invoiceId={invoice.id} status={invoice.status} />
+      {isCreditNote && invoice.originalInvoice ? (
+        <p className="text-sm text-muted-foreground">
+          {t("invoiceDetail.creditNoteFor")}{" "}
+          <Link
+            className="font-medium text-primary hover:underline"
+            href={`/invoices/${invoice.originalInvoice.id}`}
+          >
+            {invoice.originalInvoice.invoiceNumber}
+          </Link>
+        </p>
+      ) : null}
+
+      {invoice.corrections.length > 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {t("invoiceDetail.correctedBy")}{" "}
+          {invoice.corrections.map((correction, index) => (
+            <span key={correction.id}>
+              {index > 0 ? ", " : ""}
+              <Link
+                className="font-medium text-primary hover:underline"
+                href={`/invoices/${correction.id}`}
+              >
+                {correction.invoiceNumber}
+              </Link>
+            </span>
+          ))}
+        </p>
+      ) : null}
+
+      <InvoiceActions
+        invoiceId={invoice.id}
+        status={invoice.status}
+        documentType={invoice.documentType}
+        hasCorrection={invoice.corrections.length > 0}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6">
@@ -63,17 +136,17 @@ export default async function InvoiceDetailPage({
             </CardHeader>
             <CardContent className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-1 text-sm">
-                <p className="font-semibold">{invoice.customer.name}</p>
-                <p className="text-muted-foreground">{invoice.customer.address}</p>
+                <p className="font-semibold">{displayCustomer.name}</p>
+                <p className="text-muted-foreground">{displayCustomer.address}</p>
                 <p className="text-muted-foreground">
-                  {[invoice.customer.postalCode, invoice.customer.city]
+                  {[displayCustomer.postalCode, displayCustomer.city]
                     .filter(Boolean)
                     .join(" ")}
                 </p>
-                <p className="text-muted-foreground">{invoice.customer.country}</p>
-                {invoice.customer.vatId ? (
+                <p className="text-muted-foreground">{displayCustomer.country}</p>
+                {displayCustomer.vatId ? (
                   <p className="text-muted-foreground">
-                    {t("common.vatId")} {invoice.customer.vatId}
+                    {t("common.vatId")} {displayCustomer.vatId}
                   </p>
                 ) : null}
               </div>
@@ -184,6 +257,24 @@ export default async function InvoiceDetailPage({
               <CardContent className="text-sm text-muted-foreground">{invoice.notes}</CardContent>
             </Card>
           ) : null}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">{t("audit.title")}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1 text-sm">
+              {auditLogs.length === 0 ? (
+                <p className="text-muted-foreground">{t("audit.empty")}</p>
+              ) : (
+                auditLogs.map((log) => (
+                  <div key={log.seq} className="flex justify-between gap-4">
+                    <span>{t(AUDIT_LABELS[log.action] ?? "audit.CREATE")}</span>
+                    <span className="text-muted-foreground">{formatDateTime(log.createdAt)}</span>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-4 lg:sticky lg:top-8 lg:self-start">

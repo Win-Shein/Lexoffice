@@ -4,11 +4,26 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireUserId } from "@/auth";
-import { InvoiceStatus, TaxType } from "@/generated/prisma/enums";
+import { InvoiceDocumentType, InvoiceStatus, TaxType } from "@/generated/prisma/enums";
+import { writeAudit } from "@/lib/audit";
 import { exportDatevCsv as buildDatevExport } from "@/lib/datev-export";
 import { prisma } from "@/lib/db";
 import { generatePdfBuffer } from "@/lib/pdf";
 import { formatInvoiceNumber } from "@/lib/invoice-number";
+import {
+  canTransitionStatus,
+  formatCreditNoteNumber,
+  isFinalizedStatus,
+} from "@/lib/invoice-rules";
+import {
+  buildCustomerSnapshot,
+  buildFinalization,
+  buildSellerSnapshot,
+  parseCustomerSnapshot,
+  parseSellerSnapshot,
+  type CustomerSnapshot,
+  type SellerSnapshot,
+} from "@/lib/invoice-snapshot";
 import { getTranslator } from "@/lib/i18n/server";
 import type { ActionResult } from "@/lib/types";
 import { TAX_RATE_BY_TYPE, calcInvoiceTotals, isKleinbetrag } from "@/lib/vat";
@@ -47,6 +62,35 @@ const invoiceSchema = z.object({
   taxType: taxTypeSchema,
   items: z.array(itemSchema).min(1, "Mindestens eine Position erforderlich"),
 });
+
+type HashableItem = {
+  description: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  totalNet: number;
+  taxType: TaxType;
+};
+
+function toHashableItems(
+  items: Array<{
+    description: string;
+    quantity: number;
+    unit: string;
+    unitPrice: number;
+    totalNet: number;
+    taxType: TaxType;
+  }>,
+): HashableItem[] {
+  return items.map((item) => ({
+    description: item.description,
+    quantity: item.quantity,
+    unit: item.unit,
+    unitPrice: item.unitPrice,
+    totalNet: item.totalNet,
+    taxType: item.taxType,
+  }));
+}
 
 export async function peekNextInvoiceNumber(): Promise<string> {
   const userId = await requireUserId();
@@ -94,6 +138,10 @@ export async function createInvoice(input: unknown): Promise<ActionResult> {
     warnings.push(t("warning.kleinbetrag"));
   }
 
+  const finalized = isFinalizedStatus(data.status);
+  const seller = buildSellerSnapshot(user);
+  const customer = buildCustomerSnapshot(customerRecord);
+
   try {
     const invoice = await prisma.$transaction(async (tx) => {
       const updatedUser = await tx.user.update({
@@ -107,9 +155,40 @@ export async function createInvoice(input: unknown): Promise<ActionResult> {
         updatedUser.invoiceSeq,
       );
 
-      return tx.invoice.create({
+      const itemRows: HashableItem[] = data.items.map((item) => ({
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit || "Stück",
+        unitPrice: item.unitPrice,
+        totalNet: Math.round(item.quantity * item.unitPrice * 100) / 100,
+        taxType: item.taxType,
+      }));
+
+      const finalization = finalized
+        ? buildFinalization({
+            core: {
+              invoiceNumber,
+              documentType: InvoiceDocumentType.INVOICE,
+              issueDate: new Date(data.issueDate),
+              dueDate: new Date(data.dueDate),
+              performanceDate: new Date(data.performanceDate),
+              notes: data.notes ?? null,
+              subtotalNet: totals.subtotalNet,
+              vatAmount: totals.vatAmount,
+              totalGross: totals.totalGross,
+              isSmallBiz,
+              isReverseCharge,
+            },
+            items: itemRows,
+            seller,
+            customer,
+          })
+        : null;
+
+      const created = await tx.invoice.create({
         data: {
           invoiceNumber,
+          documentType: InvoiceDocumentType.INVOICE,
           issueDate: new Date(data.issueDate),
           dueDate: new Date(data.dueDate),
           performanceDate: new Date(data.performanceDate),
@@ -126,18 +205,32 @@ export async function createInvoice(input: unknown): Promise<ActionResult> {
           status: data.status,
           sentAt: data.status === InvoiceStatus.DRAFT ? null : new Date(),
           paidAt: data.status === InvoiceStatus.PAID ? new Date() : null,
-          items: {
-            create: data.items.map((item) => ({
-              description: item.description,
-              quantity: item.quantity,
-              unit: item.unit || "Stück",
-              unitPrice: item.unitPrice,
-              totalNet: Math.round(item.quantity * item.unitPrice * 100) / 100,
-              taxType: item.taxType,
-            })),
-          },
+          finalizedAt: finalized ? new Date() : null,
+          sellerSnapshot: finalization?.sellerSnapshot ?? null,
+          customerSnapshot: finalization?.customerSnapshot ?? null,
+          contentHash: finalization?.contentHash ?? null,
+          items: { create: itemRows },
         },
       });
+
+      await writeAudit(tx, {
+        userId,
+        entity: "Invoice",
+        entityId: created.id,
+        action: "CREATE",
+        after: { invoiceNumber, status: created.status, totalGross: created.totalGross },
+      });
+      if (finalized) {
+        await writeAudit(tx, {
+          userId,
+          entity: "Invoice",
+          entityId: created.id,
+          action: "ISSUE",
+          after: { invoiceNumber, contentHash: created.contentHash },
+        });
+      }
+
+      return created;
     });
 
     revalidatePath("/invoices");
@@ -161,16 +254,68 @@ export async function updateInvoiceStatus(
   const invoice = await prisma.invoice.findFirst({ where: { id: invoiceId, userId } });
   if (!invoice) return { ok: false, error: t("error.invoiceNotFound") };
 
-  await prisma.invoice.update({
-    where: { id: invoiceId },
-    data: {
-      status: parsedStatus.data,
-      paidAt: parsedStatus.data === InvoiceStatus.PAID ? new Date() : null,
-      sentAt:
-        parsedStatus.data === InvoiceStatus.DRAFT
-          ? null
-          : (invoice.sentAt ?? new Date()),
-    },
+  const target = parsedStatus.data;
+  if (invoice.status === target) return { ok: true, id: invoiceId };
+
+  if (!canTransitionStatus(invoice.status, target)) {
+    return { ok: false, error: t("error.invoiceStatusLocked") };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const becomingFinalized = !invoice.finalizedAt && isFinalizedStatus(target);
+
+    let finalizationData: {
+      sellerSnapshot: string;
+      customerSnapshot: string;
+      contentHash: string;
+    } | null = null;
+
+    if (becomingFinalized) {
+      const [seller, customer] = await Promise.all([
+        tx.user.findUniqueOrThrow({ where: { id: userId } }),
+        tx.customer.findUniqueOrThrow({ where: { id: invoice.customerId } }),
+      ]);
+      const items = await tx.invoiceItem.findMany({ where: { invoiceId } });
+      finalizationData = buildFinalization({
+        core: {
+          invoiceNumber: invoice.invoiceNumber,
+          documentType: invoice.documentType,
+          issueDate: invoice.issueDate,
+          dueDate: invoice.dueDate,
+          performanceDate: invoice.performanceDate,
+          notes: invoice.notes,
+          subtotalNet: invoice.subtotalNet,
+          vatAmount: invoice.vatAmount,
+          totalGross: invoice.totalGross,
+          isSmallBiz: invoice.isSmallBiz,
+          isReverseCharge: invoice.isReverseCharge,
+        },
+        items: toHashableItems(items),
+        seller: buildSellerSnapshot(seller),
+        customer: buildCustomerSnapshot(customer),
+      });
+    }
+
+    await tx.invoice.update({
+      where: { id: invoiceId },
+      data: {
+        status: target,
+        paidAt: target === InvoiceStatus.PAID ? new Date() : null,
+        sentAt: invoice.sentAt ?? new Date(),
+        ...(finalizationData
+          ? { finalizedAt: new Date(), ...finalizationData }
+          : {}),
+      },
+    });
+
+    await writeAudit(tx, {
+      userId,
+      entity: "Invoice",
+      entityId: invoiceId,
+      action: "STATUS_CHANGE",
+      before: { status: invoice.status },
+      after: { status: target },
+    });
   });
 
   revalidatePath("/invoices");
@@ -185,10 +330,168 @@ export async function deleteInvoice(invoiceId: string): Promise<ActionResult> {
   const invoice = await prisma.invoice.findFirst({ where: { id: invoiceId, userId } });
   if (!invoice) return { ok: false, error: t("error.invoiceNotFound") };
 
-  await prisma.invoice.delete({ where: { id: invoiceId } });
+  // Revisionssicherheit: only draft documents may be deleted. Issued documents
+  // must be corrected via a credit note (Stornorechnung / Gutschrift).
+  if (invoice.finalizedAt || invoice.status !== InvoiceStatus.DRAFT) {
+    return { ok: false, error: t("error.invoiceLocked") };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await writeAudit(tx, {
+      userId,
+      entity: "Invoice",
+      entityId: invoiceId,
+      action: "DELETE",
+      before: {
+        invoiceNumber: invoice.invoiceNumber,
+        status: invoice.status,
+        totalGross: invoice.totalGross,
+      },
+    });
+    await tx.invoice.delete({ where: { id: invoiceId } });
+  });
+
   revalidatePath("/invoices");
   revalidatePath("/dashboard");
   return { ok: true };
+}
+
+/**
+ * Creates a Stornorechnung / Gutschrift (credit note) that fully reverses an
+ * issued invoice, then marks the original as CANCELLED. The original document
+ * is left untouched (immutability) and remains linked to its correction.
+ */
+export async function createCreditNote(originalInvoiceId: string): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const { t } = await getTranslator();
+
+  const original = await prisma.invoice.findFirst({
+    where: { id: originalInvoiceId, userId },
+    include: { items: true, customer: true, user: true, corrections: true },
+  });
+  if (!original) return { ok: false, error: t("error.invoiceNotFound") };
+  if (original.documentType !== InvoiceDocumentType.INVOICE) {
+    return { ok: false, error: t("error.invalidInput") };
+  }
+  if (original.status === InvoiceStatus.CANCELLED || original.corrections.length > 0) {
+    return { ok: false, error: t("error.invoiceAlreadyCancelled") };
+  }
+
+  try {
+    const creditNote = await prisma.$transaction(async (tx) => {
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: { creditNoteSeq: { increment: 1 } },
+        select: { creditNoteSeq: true },
+      });
+
+      const creditNoteNumber = formatCreditNoteNumber(
+        original.issueDate.getFullYear(),
+        updatedUser.creditNoteSeq,
+      );
+
+      const seller: SellerSnapshot =
+        parseSellerSnapshot(original.sellerSnapshot) ?? buildSellerSnapshot(original.user);
+      const customer: CustomerSnapshot =
+        parseCustomerSnapshot(original.customerSnapshot) ??
+        buildCustomerSnapshot(original.customer);
+
+      const items: HashableItem[] = original.items.map((item) => ({
+        description: item.description,
+        quantity: -item.quantity,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        totalNet: -item.totalNet,
+        taxType: item.taxType,
+      }));
+
+      const notes = `Stornorechnung zu ${original.invoiceNumber}`;
+
+      const finalization = buildFinalization({
+        core: {
+          invoiceNumber: creditNoteNumber,
+          documentType: InvoiceDocumentType.CREDIT_NOTE,
+          issueDate: new Date(),
+          dueDate: new Date(),
+          performanceDate: original.performanceDate,
+          notes,
+          subtotalNet: -original.subtotalNet,
+          vatAmount: -original.vatAmount,
+          totalGross: -original.totalGross,
+          isSmallBiz: original.isSmallBiz,
+          isReverseCharge: original.isReverseCharge,
+        },
+        items,
+        seller,
+        customer,
+      });
+
+      const created = await tx.invoice.create({
+        data: {
+          invoiceNumber: creditNoteNumber,
+          documentType: InvoiceDocumentType.CREDIT_NOTE,
+          originalInvoiceId: original.id,
+          issueDate: new Date(),
+          dueDate: new Date(),
+          performanceDate: original.performanceDate,
+          userId,
+          customerId: original.customerId,
+          subtotalNet: -original.subtotalNet,
+          vatRate: original.vatRate,
+          vatAmount: -original.vatAmount,
+          totalGross: -original.totalGross,
+          taxType: original.taxType,
+          isSmallBiz: original.isSmallBiz,
+          isReverseCharge: original.isReverseCharge,
+          notes,
+          status: InvoiceStatus.SENT,
+          sentAt: new Date(),
+          paidAt: null,
+          finalizedAt: new Date(),
+          sellerSnapshot: finalization.sellerSnapshot,
+          customerSnapshot: finalization.customerSnapshot,
+          contentHash: finalization.contentHash,
+          items: { create: items },
+        },
+      });
+
+      // Lock the original by marking it cancelled; its content stays untouched.
+      await tx.invoice.update({
+        where: { id: original.id },
+        data: { status: InvoiceStatus.CANCELLED },
+      });
+
+      await writeAudit(tx, {
+        userId,
+        entity: "Invoice",
+        entityId: created.id,
+        action: "CREDIT_NOTE",
+        after: {
+          invoiceNumber: creditNoteNumber,
+          originalInvoiceId: original.id,
+          totalGross: created.totalGross,
+        },
+      });
+      await writeAudit(tx, {
+        userId,
+        entity: "Invoice",
+        entityId: original.id,
+        action: "STATUS_CHANGE",
+        before: { status: original.status },
+        after: { status: InvoiceStatus.CANCELLED, creditNoteId: created.id },
+      });
+
+      return created;
+    });
+
+    revalidatePath("/invoices");
+    revalidatePath(`/invoices/${originalInvoiceId}`);
+    revalidatePath("/dashboard");
+    return { ok: true, id: creditNote.id };
+  } catch (error) {
+    console.error("createCreditNote failed", error);
+    return { ok: false, error: t("error.invoiceSaveFailed") };
+  }
 }
 
 export async function generatePdfBufferAction(

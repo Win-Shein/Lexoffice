@@ -25,7 +25,12 @@ export async function restoreBackupAction(json: string): Promise<RestoreActionRe
   if (!result.ok) {
     return {
       ok: false,
-      error: result.reason === "invalid" ? t("backup.invalid") : t("backup.restoreFailed"),
+      error:
+        result.reason === "invalid"
+          ? t("backup.invalid")
+          : result.reason === "locked"
+            ? t("backup.locked")
+            : t("backup.restoreFailed"),
     };
   }
 

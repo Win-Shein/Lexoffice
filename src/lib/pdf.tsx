@@ -5,6 +5,10 @@ import {
   type InvoicePdfData,
 } from "@/components/invoice-pdf";
 import { prisma } from "@/lib/db";
+import {
+  parseCustomerSnapshot,
+  parseSellerSnapshot,
+} from "@/lib/invoice-snapshot";
 
 export async function buildInvoicePdfData(
   invoiceId: string,
@@ -16,6 +20,37 @@ export async function buildInvoicePdfData(
   });
 
   if (!invoice) return null;
+
+  // Prefer the immutable snapshot captured at issuance. This guarantees that
+  // later edits to the customer or company settings do not alter an already
+  // issued document (Revisionssicherheit).
+  const sellerSnapshot = parseSellerSnapshot(invoice.sellerSnapshot);
+  const customerSnapshot = parseCustomerSnapshot(invoice.customerSnapshot);
+
+  const seller = sellerSnapshot ?? {
+    companyName: invoice.user.companyName ?? invoice.user.name ?? "",
+    name: invoice.user.name,
+    address: invoice.user.address,
+    city: invoice.user.city,
+    postalCode: invoice.user.postalCode,
+    country: invoice.user.country,
+    phone: invoice.user.phone,
+    email: invoice.user.email,
+    taxNumber: invoice.user.taxNumber,
+    vatId: invoice.user.vatId,
+    iban: invoice.user.iban,
+    bic: invoice.user.bic,
+    bankName: invoice.user.bankName,
+  };
+
+  const customer = customerSnapshot ?? {
+    name: invoice.customer.name,
+    address: invoice.customer.address,
+    city: invoice.customer.city,
+    postalCode: invoice.customer.postalCode,
+    country: invoice.customer.country,
+    vatId: invoice.customer.vatId,
+  };
 
   return {
     invoiceNumber: invoice.invoiceNumber,
@@ -29,29 +64,8 @@ export async function buildInvoicePdfData(
     totalGross: invoice.totalGross,
     isSmallBiz: invoice.isSmallBiz,
     isReverseCharge: invoice.isReverseCharge,
-    seller: {
-      companyName: invoice.user.companyName ?? invoice.user.name ?? "",
-      name: invoice.user.name,
-      address: invoice.user.address,
-      city: invoice.user.city,
-      postalCode: invoice.user.postalCode,
-      country: invoice.user.country,
-      phone: invoice.user.phone,
-      email: invoice.user.email,
-      taxNumber: invoice.user.taxNumber,
-      vatId: invoice.user.vatId,
-      iban: invoice.user.iban,
-      bic: invoice.user.bic,
-      bankName: invoice.user.bankName,
-    },
-    customer: {
-      name: invoice.customer.name,
-      address: invoice.customer.address,
-      city: invoice.customer.city,
-      postalCode: invoice.customer.postalCode,
-      country: invoice.customer.country,
-      vatId: invoice.customer.vatId,
-    },
+    seller,
+    customer,
     items: invoice.items.map((item) => ({
       description: item.description,
       quantity: item.quantity,

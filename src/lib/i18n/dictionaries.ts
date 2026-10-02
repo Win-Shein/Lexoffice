@@ -155,6 +155,9 @@ export const de = {
   "invoiceDetail.vatReverseCharge": "USt (Reverse Charge)",
   "invoiceDetail.taxNotices": "Steuerliche Hinweise",
   "invoiceDetail.notes": "Hinweise",
+  "invoiceDetail.creditNote": "Stornorechnung",
+  "invoiceDetail.creditNoteFor": "Stornorechnung zu",
+  "invoiceDetail.correctedBy": "Storniert durch",
 
   // Invoice actions
   "invoiceActions.markSent": "Als versendet markieren",
@@ -163,6 +166,13 @@ export const de = {
   "invoiceActions.deleted": "Rechnung gelöscht.",
   "invoiceActions.statusUpdated": "Status aktualisiert.",
   "invoiceActions.confirmDelete": "Rechnung wirklich löschen?",
+  "invoiceActions.createCreditNote": "Stornorechnung erstellen",
+  "invoiceActions.confirmCreditNote":
+    "Stornorechnung für diese Rechnung erstellen? Die ursprüngliche Rechnung bleibt unverändert erhalten.",
+  "invoiceActions.creditNoteCreated": "Stornorechnung erstellt.",
+  "invoiceActions.confirmCancelSimple":
+    "Rechnung wirklich stornieren? Eine Stornorechnung wird automatisch erstellt.",
+  "invoiceActions.cancelled": "Rechnung storniert.",
 
   // Customers
   "customers.title": "Kunden",
@@ -264,7 +274,18 @@ export const de = {
     "Backup wiederhergestellt: {customers} Kunden, {invoices} Rechnungen, {expenses} Ausgaben.",
   "backup.invalid": "Ungültige Backup-Datei.",
   "backup.restoreFailed": "Backup konnte nicht wiederhergestellt werden.",
+  "backup.locked":
+    "Wiederherstellung nicht möglich: Es existieren festgeschriebene Rechnungen (GoBD).",
   "backup.tooLarge": "Die Datei ist zu groß (max. 10 MB).",
+
+  // Audit trail
+  "audit.title": "Verlauf (Prüfpfad)",
+  "audit.empty": "Kein Verlauf vorhanden.",
+  "audit.CREATE": "Erstellt",
+  "audit.ISSUE": "Festgeschrieben",
+  "audit.STATUS_CHANGE": "Status geändert",
+  "audit.DELETE": "Gelöscht",
+  "audit.CREDIT_NOTE": "Storniert",
 
   // Password
   "password.title": "Passwort ändern",
@@ -293,6 +314,11 @@ export const de = {
   "error.categoryDefaultProtected":
     "Die Standardkategorie „Sonstiges“ kann nicht gelöscht werden.",
   "error.invoiceSaveFailed": "Rechnung konnte nicht gespeichert werden.",
+  "error.invoiceLocked":
+    "Festgeschriebene Rechnungen können nicht gelöscht werden. Erstellen Sie eine Stornorechnung.",
+  "error.invoiceStatusLocked":
+    "Dieser Statuswechsel ist für eine festgeschriebene Rechnung nicht zulässig.",
+  "error.invoiceAlreadyCancelled": "Diese Rechnung wurde bereits storniert.",
   "error.customerHasInvoices": "Kunde hat Rechnungen und kann nicht gelöscht werden.",
   "error.taxIdRequired":
     "Pflichtangabe nach UStG §14: Steuernummer oder USt-IdNr. muss hinterlegt sein.",
@@ -452,6 +478,9 @@ export const en: Record<TranslationKey, string> = {
   "invoiceDetail.vatReverseCharge": "VAT (reverse charge)",
   "invoiceDetail.taxNotices": "Tax notices",
   "invoiceDetail.notes": "Notes",
+  "invoiceDetail.creditNote": "Credit note",
+  "invoiceDetail.creditNoteFor": "Credit note for",
+  "invoiceDetail.correctedBy": "Cancelled by",
 
   "invoiceActions.markSent": "Mark as sent",
   "invoiceActions.markPaid": "Mark as paid",
@@ -459,6 +488,13 @@ export const en: Record<TranslationKey, string> = {
   "invoiceActions.deleted": "Invoice deleted.",
   "invoiceActions.statusUpdated": "Status updated.",
   "invoiceActions.confirmDelete": "Really delete this invoice?",
+  "invoiceActions.createCreditNote": "Create credit note",
+  "invoiceActions.confirmCreditNote":
+    "Create a credit note (Storno) for this invoice? The original invoice is preserved unchanged.",
+  "invoiceActions.creditNoteCreated": "Credit note created.",
+  "invoiceActions.confirmCancelSimple":
+    "Really cancel this invoice? A credit note (Storno) will be created automatically.",
+  "invoiceActions.cancelled": "Invoice cancelled.",
 
   "customers.title": "Customers",
   "customers.description": "{count} customers in your database",
@@ -553,7 +589,17 @@ export const en: Record<TranslationKey, string> = {
     "Backup restored: {customers} customers, {invoices} invoices, {expenses} expenses.",
   "backup.invalid": "Invalid backup file.",
   "backup.restoreFailed": "Backup could not be restored.",
+  "backup.locked":
+    "Restore not possible: finalized invoices exist (GoBD).",
   "backup.tooLarge": "The file is too large (max. 10 MB).",
+
+  "audit.title": "History (audit trail)",
+  "audit.empty": "No history yet.",
+  "audit.CREATE": "Created",
+  "audit.ISSUE": "Finalized",
+  "audit.STATUS_CHANGE": "Status changed",
+  "audit.DELETE": "Deleted",
+  "audit.CREDIT_NOTE": "Cancelled",
 
   "password.title": "Change password",
   "password.description": "Update your login password.",
@@ -579,6 +625,11 @@ export const en: Record<TranslationKey, string> = {
   "error.categoryExists": "Category already exists",
   "error.categoryDefaultProtected": "The default category “Sonstiges” cannot be deleted.",
   "error.invoiceSaveFailed": "Invoice could not be saved.",
+  "error.invoiceLocked":
+    "Finalized invoices cannot be deleted. Issue a credit note (Storno) instead.",
+  "error.invoiceStatusLocked":
+    "This status change is not allowed for a finalized invoice.",
+  "error.invoiceAlreadyCancelled": "This invoice has already been cancelled.",
   "error.customerHasInvoices": "Customer has invoices and cannot be deleted.",
   "error.taxIdRequired": "Mandatory under UStG §14: a tax number or VAT ID must be provided.",
 

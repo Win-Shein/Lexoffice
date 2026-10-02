@@ -14,6 +14,14 @@ const dateFormatter = new Intl.DateTimeFormat("de-DE", {
   year: "numeric",
 });
 
+const dateTimeFormatter = new Intl.DateTimeFormat("de-DE", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 export function formatCurrency(value: number | null | undefined) {
   return currencyFormatter.format(value ?? 0);
 }
@@ -27,6 +35,13 @@ export function formatDate(value: Date | string | null | undefined) {
   const date = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return "—";
   return dateFormatter.format(date);
+}
+
+export function formatDateTime(value: Date | string | null | undefined) {
+  if (!value) return "—";
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return "—";
+  return dateTimeFormatter.format(date);
 }
 
 export function toDateInputValue(value: Date | string | null | undefined) {

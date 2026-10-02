@@ -30,6 +30,11 @@ enum CategoryType {
   EXPENSE
 }
 
+enum InvoiceDocumentType {
+  INVOICE
+  CREDIT_NOTE // Stornorechnung / Gutschrift
+}
+
 model User {
   id           String         @id @default(uuid())
   email        String         @unique
@@ -48,10 +53,12 @@ model User {
   bankName     String?
   isSmallBiz   Boolean        @default(false) // §19 UStG Kleinunternehmer
   invoiceSeq   Int            @default(0) // running number counter
+  creditNoteSeq Int           @default(0) // separate sequence for Stornorechnungen
   invoices     Invoice[]
   expenses     Expense[]
   items        Item[]
   categories   Category[]
+  auditLogs    AuditLog[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 }
@@ -73,9 +80,21 @@ model Customer {
 model Invoice {
   id              String        @id @default(uuid())
   invoiceNumber   String        @unique
+  documentType    InvoiceDocumentType @default(INVOICE)
   issueDate       DateTime      @default(now())
   dueDate         DateTime
   performanceDate DateTime      @default(now())
+
+  // Revisionssicherheit: once finalized (issued) the document is immutable
+  finalizedAt     DateTime?
+  sellerSnapshot  String? // JSON snapshot of seller data at issuance
+  customerSnapshot String? // JSON snapshot of customer data at issuance
+  contentHash     String? // SHA-256 over the immutable document content
+
+  // Stornorechnung / Gutschrift link to the corrected original
+  originalInvoiceId String?
+  originalInvoice   Invoice?  @relation("InvoiceCorrections", fields: [originalInvoiceId], references: [id])
+  corrections       Invoice[] @relation("InvoiceCorrections")
 
   userId   String
   user     User   @relation(fields: [userId], references: [id])
@@ -100,6 +119,22 @@ model Invoice {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  seq       Int      @id @default(autoincrement())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  entity    String // e.g. "Invoice"
+  entityId  String
+  action    String // CREATE | STATUS_CHANGE | ISSUE | DELETE | CREDIT_NOTE
+  before    String? // JSON snapshot of relevant state before the change
+  after     String? // JSON snapshot of relevant state after the change
+  hash      String // SHA-256 over prevHash + this entry
+  prevHash  String? // previous entry hash (hash chain)
+  createdAt DateTime @default(now())
+
+  @@index([userId, seq])
 }
 
 model InvoiceItem {

@@ -1,4 +1,4 @@
-import { InvoiceStatus } from "@/generated/prisma/enums";
+import { InvoiceDocumentType, InvoiceStatus } from "@/generated/prisma/enums";
 import { buildDatevCsv, type DatevRow } from "@/lib/datev";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
@@ -13,7 +13,11 @@ const CREDITORS_ACCOUNT = "10000";
 export async function exportDatevCsv(userId: string) {
   const [invoices, expenses] = await Promise.all([
     prisma.invoice.findMany({
-      where: { userId, status: { in: [InvoiceStatus.PAID, InvoiceStatus.SENT] } },
+      where: {
+        userId,
+        documentType: InvoiceDocumentType.INVOICE,
+        status: { in: [InvoiceStatus.PAID, InvoiceStatus.SENT] },
+      },
       include: { customer: true },
       orderBy: { issueDate: "asc" },
     }),

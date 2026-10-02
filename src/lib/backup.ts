@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { InvoiceStatus, TaxType } from "@/generated/prisma/enums";
+import { InvoiceDocumentType, InvoiceStatus, TaxType } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 
 export const BACKUP_APP = "MMXeron";
@@ -51,6 +51,14 @@ const invoiceSchema = z.object({
     .default(InvoiceStatus.DRAFT),
   paidAt: z.string().nullable().optional(),
   sentAt: z.string().nullable().optional(),
+  documentType: z
+    .enum([InvoiceDocumentType.INVOICE, InvoiceDocumentType.CREDIT_NOTE])
+    .default(InvoiceDocumentType.INVOICE),
+  finalizedAt: z.string().nullable().optional(),
+  sellerSnapshot: z.string().nullable().optional(),
+  customerSnapshot: z.string().nullable().optional(),
+  contentHash: z.string().nullable().optional(),
+  originalInvoiceNumber: z.string().nullable().optional(),
   customerIndex: z.number().int().min(0),
   items: z.array(itemSchema).default([]),
 });
@@ -82,6 +90,7 @@ const profileSchema = z.object({
   bankName: z.string().nullable().optional(),
   isSmallBiz: z.boolean().default(false),
   invoiceSeq: z.number().int().min(0).default(0),
+  creditNoteSeq: z.number().int().min(0).default(0),
 });
 
 export const backupSchema = z.object({
@@ -102,7 +111,7 @@ export type BackupPayload = z.infer<typeof backupSchema>;
 
 export type RestoreResult =
   | { ok: true; customers: number; invoices: number; expenses: number }
-  | { ok: false; reason: "invalid" | "error" };
+  | { ok: false; reason: "invalid" | "error" | "locked" };
 
 export async function buildBackup(userId: string): Promise<BackupPayload> {
   const [user, customers, invoices, expenses] = await Promise.all([
@@ -117,6 +126,7 @@ export async function buildBackup(userId: string): Promise<BackupPayload> {
   ]);
 
   const customerIndex = new Map(customers.map((customer, index) => [customer.id, index]));
+  const invoiceNumberById = new Map(invoices.map((invoice) => [invoice.id, invoice.invoiceNumber]));
 
   return {
     meta: {
@@ -139,6 +149,7 @@ export async function buildBackup(userId: string): Promise<BackupPayload> {
       bankName: user.bankName,
       isSmallBiz: user.isSmallBiz,
       invoiceSeq: user.invoiceSeq,
+      creditNoteSeq: user.creditNoteSeq,
     },
     customers: customers.map((customer) => ({
       name: customer.name,
@@ -165,6 +176,14 @@ export async function buildBackup(userId: string): Promise<BackupPayload> {
       status: invoice.status,
       paidAt: invoice.paidAt ? invoice.paidAt.toISOString() : null,
       sentAt: invoice.sentAt ? invoice.sentAt.toISOString() : null,
+      documentType: invoice.documentType,
+      finalizedAt: invoice.finalizedAt ? invoice.finalizedAt.toISOString() : null,
+      sellerSnapshot: invoice.sellerSnapshot,
+      customerSnapshot: invoice.customerSnapshot,
+      contentHash: invoice.contentHash,
+      originalInvoiceNumber: invoice.originalInvoiceId
+        ? (invoiceNumberById.get(invoice.originalInvoiceId) ?? null)
+        : null,
       customerIndex: customerIndex.get(invoice.customerId) ?? 0,
       items: invoice.items.map((item) => ({
         description: item.description,
@@ -197,6 +216,13 @@ export async function restoreBackup(
   if (!parsed.success) return { ok: false, reason: "invalid" };
   const data = parsed.data;
 
+  // Revisionssicherheit: restoring would replace existing data. Refuse when
+  // finalized (issued) invoices exist so they cannot be overwritten/deleted.
+  const finalizedCount = await prisma.invoice.count({
+    where: { userId, finalizedAt: { not: null } },
+  });
+  if (finalizedCount > 0) return { ok: false, reason: "locked" };
+
   try {
     const counts = await prisma.$transaction(async (tx) => {
       await tx.expense.deleteMany({ where: { userId } });
@@ -221,13 +247,16 @@ export async function restoreBackup(
       }
 
       let invoiceCount = 0;
+      const createdByNumber = new Map<string, string>();
+      const pendingLinks: Array<{ id: string; originalNumber: string }> = [];
       for (const invoice of data.invoices) {
         const customer = createdCustomers[invoice.customerIndex];
         if (!customer) continue;
 
-        await tx.invoice.create({
+        const created = await tx.invoice.create({
           data: {
             invoiceNumber: invoice.invoiceNumber,
+            documentType: invoice.documentType,
             issueDate: new Date(invoice.issueDate),
             dueDate: new Date(invoice.dueDate),
             performanceDate: new Date(invoice.performanceDate),
@@ -244,6 +273,10 @@ export async function restoreBackup(
             status: invoice.status,
             paidAt: invoice.paidAt ? new Date(invoice.paidAt) : null,
             sentAt: invoice.sentAt ? new Date(invoice.sentAt) : null,
+            finalizedAt: invoice.finalizedAt ? new Date(invoice.finalizedAt) : null,
+            sellerSnapshot: invoice.sellerSnapshot ?? null,
+            customerSnapshot: invoice.customerSnapshot ?? null,
+            contentHash: invoice.contentHash ?? null,
             items: {
               create: invoice.items.map((item) => ({
                 description: item.description,
@@ -256,7 +289,22 @@ export async function restoreBackup(
             },
           },
         });
+
+        createdByNumber.set(invoice.invoiceNumber, created.id);
+        if (invoice.originalInvoiceNumber) {
+          pendingLinks.push({ id: created.id, originalNumber: invoice.originalInvoiceNumber });
+        }
         invoiceCount += 1;
+      }
+
+      for (const link of pendingLinks) {
+        const originalId = createdByNumber.get(link.originalNumber);
+        if (originalId) {
+          await tx.invoice.update({
+            where: { id: link.id },
+            data: { originalInvoiceId: originalId },
+          });
+        }
       }
 
       for (const expense of data.expenses) {
@@ -294,6 +342,7 @@ export async function restoreBackup(
           bankName: profile.bankName ?? null,
           isSmallBiz: profile.isSmallBiz,
           invoiceSeq: profile.invoiceSeq,
+          creditNoteSeq: profile.creditNoteSeq,
         },
       });
 
