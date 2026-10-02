@@ -10,6 +10,7 @@ export const de = {
   "nav.settings": "Einstellungen",
   "nav.newInvoice": "Neue Rechnung",
   "nav.signOut": "Abmelden",
+  "nav.signIn": "Anmelden",
   "nav.companyFallback": "Mein Unternehmen",
   "nav.language": "Sprache",
 
@@ -64,9 +65,35 @@ export const de = {
   "login.submit": "Anmelden",
   "login.submitting": "Anmelden…",
   "login.error": "E-Mail oder Passwort ist nicht korrekt.",
+  "login.noAccount": "Noch kein Konto?",
+  "login.registerLink": "Jetzt registrieren",
+  "login.continueAsGuest": "Als Gast fortfahren",
   "login.demoTitle": "Demo-Zugang",
   "login.demoEmail": "E-Mail:",
   "login.demoPassword": "Passwort:",
+
+  // Register
+  "register.title": "Konto erstellen",
+  "register.subtitle": "Erste Anmeldung? Legen Sie Ihr Konto an.",
+  "register.name": "Name / Firma (optional)",
+  "register.password": "Passwort",
+  "register.confirmPassword": "Passwort bestätigen",
+  "register.submit": "Registrieren",
+  "register.submitting": "Wird erstellt…",
+  "register.haveAccount": "Bereits registriert?",
+  "register.loginLink": "Anmelden",
+  "register.passwordMismatch": "Die Passwörter stimmen nicht überein.",
+  "register.passwordTooShort": "Das Passwort muss mindestens 8 Zeichen haben.",
+  "register.emailTaken": "Diese E-Mail ist bereits registriert.",
+  "register.created": "Konto erstellt.",
+
+  // Account
+  "account.title": "Konto",
+  "account.signedInAs": "Angemeldet als",
+  "account.guestHint":
+    "Sie nutzen die App als Gast. Melden Sie sich an, um ein eigenes Konto zu verwenden.",
+  "account.login": "Anmelden",
+  "account.register": "Registrieren",
 
   // Dashboard
   "dashboard.title": "Dashboard",
@@ -315,7 +342,9 @@ export const de = {
 
   // Password
   "password.title": "Passwort ändern",
-  "password.description": "Aktualisieren Sie Ihr Anmeldepasswort.",
+  "password.description": "Aktualisieren Sie E-Mail und Passwort Ihres Kontos.",
+  "password.email": "E-Mail",
+  "password.optional": "Neues Passwort leer lassen, um es nicht zu ändern.",
   "password.current": "Aktuelles Passwort",
   "password.new": "Neues Passwort",
   "password.confirm": "Neues Passwort bestätigen",
@@ -369,6 +398,7 @@ export const en: Record<TranslationKey, string> = {
   "nav.settings": "Settings",
   "nav.newInvoice": "New invoice",
   "nav.signOut": "Sign out",
+  "nav.signIn": "Sign in",
   "nav.companyFallback": "My company",
   "nav.language": "Language",
 
@@ -420,9 +450,33 @@ export const en: Record<TranslationKey, string> = {
   "login.submit": "Sign in",
   "login.submitting": "Signing in…",
   "login.error": "Email or password is incorrect.",
+  "login.noAccount": "No account yet?",
+  "login.registerLink": "Create one",
+  "login.continueAsGuest": "Continue as guest",
   "login.demoTitle": "Demo access",
   "login.demoEmail": "Email:",
   "login.demoPassword": "Password:",
+
+  "register.title": "Create account",
+  "register.subtitle": "First time here? Create your account.",
+  "register.name": "Name / company (optional)",
+  "register.password": "Password",
+  "register.confirmPassword": "Confirm password",
+  "register.submit": "Create account",
+  "register.submitting": "Creating…",
+  "register.haveAccount": "Already registered?",
+  "register.loginLink": "Sign in",
+  "register.passwordMismatch": "Passwords do not match.",
+  "register.passwordTooShort": "The password must be at least 8 characters long.",
+  "register.emailTaken": "This email is already registered.",
+  "register.created": "Account created.",
+
+  "account.title": "Account",
+  "account.signedInAs": "Signed in as",
+  "account.guestHint":
+    "You are browsing as a guest. Sign in to use your own account.",
+  "account.login": "Sign in",
+  "account.register": "Create account",
 
   "dashboard.title": "Dashboard",
   "dashboard.description": "Overview of revenue, expenses and open invoices.",
@@ -656,7 +710,9 @@ export const en: Record<TranslationKey, string> = {
   "audit.CREDIT_NOTE": "Cancelled",
 
   "password.title": "Change password",
-  "password.description": "Update your login password.",
+  "password.description": "Update your account email and password.",
+  "password.email": "Email",
+  "password.optional": "Leave the new password blank to keep it unchanged.",
   "password.current": "Current password",
   "password.new": "New password",
   "password.confirm": "Confirm new password",

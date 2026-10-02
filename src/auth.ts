@@ -25,15 +25,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!parsed.success) return null;
 
         const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email },
+          where: { email: parsed.data.email.toLowerCase() },
         });
 
         if (!user?.passwordHash) return null;
 
-        const valid = await bcrypt.compare(
-          parsed.data.password,
-          user.passwordHash,
-        );
+        const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
         if (!valid) return null;
 
         return {
@@ -56,13 +53,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 });
 
-export async function requireUserId() {
+export async function isAuthenticated(): Promise<boolean> {
+  const session = await auth();
+  return Boolean(session?.user?.id);
+}
+
+export async function requireUserId(): Promise<string> {
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("Nicht angemeldet");
   }
   return session.user.id;
 }
+
+// Alias used by API routes and exports.
+export const getLocalUserId = requireUserId;
 
 export async function getCurrentUser() {
   const session = await auth();

@@ -4,7 +4,7 @@ import { KeyRound, Loader2 } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { changePassword } from "@/actions/password";
+import { updateAccount } from "@/actions/password";
 import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function ChangePasswordForm() {
+export function ChangePasswordForm({ email }: { email: string }) {
   const { t } = useI18n();
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
@@ -25,21 +25,24 @@ export function ChangePasswordForm() {
 
   function onSubmit(formData: FormData) {
     setError(null);
+    const nextEmail = String(formData.get("email") ?? "").trim();
     const currentPassword = String(formData.get("currentPassword") ?? "");
-    const newPassword = String(formData.get("newPassword") ?? "");
+    const newPassword = String(formData.get("newPassword") ?? "").trim();
     const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-    if (newPassword.length < 8) {
-      setError(t("password.tooShort"));
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError(t("password.mismatch"));
-      return;
+    if (newPassword) {
+      if (newPassword.length < 8) {
+        setError(t("password.tooShort"));
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setError(t("password.mismatch"));
+        return;
+      }
     }
 
     startTransition(async () => {
-      const result = await changePassword({ currentPassword, newPassword });
+      const result = await updateAccount({ email: nextEmail, currentPassword, newPassword });
       if (!result.ok) {
         setError(result.error);
         toast.error(result.error);
@@ -57,11 +60,19 @@ export function ChangePasswordForm() {
         <CardDescription>{t("password.description")}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form
-          ref={formRef}
-          action={onSubmit}
-          className="grid gap-4 sm:grid-cols-3"
-        >
+        <form ref={formRef} action={onSubmit} className="grid gap-4 sm:grid-cols-3">
+          <div className="space-y-2 sm:col-span-3">
+            <Label htmlFor="email">{t("password.email")}</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              defaultValue={email}
+              required
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="currentPassword">{t("password.current")}</Label>
             <Input
@@ -69,7 +80,6 @@ export function ChangePasswordForm() {
               name="currentPassword"
               type="password"
               autoComplete="current-password"
-              required
             />
           </div>
           <div className="space-y-2">
@@ -79,7 +89,6 @@ export function ChangePasswordForm() {
               name="newPassword"
               type="password"
               autoComplete="new-password"
-              required
             />
           </div>
           <div className="space-y-2">
@@ -89,9 +98,12 @@ export function ChangePasswordForm() {
               name="confirmPassword"
               type="password"
               autoComplete="new-password"
-              required
             />
           </div>
+
+          <p className="text-xs text-muted-foreground sm:col-span-3">
+            {t("password.optional")}
+          </p>
 
           {error ? (
             <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/15 dark:text-red-300 sm:col-span-3">

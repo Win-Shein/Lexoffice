@@ -2,7 +2,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
 
 import { BatchInvoicePdfDocument } from "@/components/invoice-pdf";
-import { auth } from "@/auth";
+import { getLocalUserId } from "@/auth";
 import { InvoiceStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import { toInvoicePdfData } from "@/lib/pdf";
@@ -13,10 +13,7 @@ const isDate = (value: string | null): value is string =>
   typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 
 export async function GET(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return new Response("Nicht angemeldet", { status: 401 });
-  }
+  const userId = await getLocalUserId();
 
   const { searchParams } = new URL(request.url);
   const fromParam = searchParams.get("from");
@@ -31,7 +28,7 @@ export async function GET(request: Request) {
 
   const invoices = await prisma.invoice.findMany({
     where: {
-      userId: session.user.id,
+      userId,
       ...(status ? { status } : {}),
       ...(from || to
         ? {

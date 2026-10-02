@@ -58,16 +58,6 @@ export default async function LoginPage() {
           </div>
 
           <LoginForm />
-
-          <div className="rounded-lg border border-dashed border-border bg-muted/50 p-3 text-xs text-muted-foreground">
-            <p className="font-medium text-foreground">{t("login.demoTitle")}</p>
-            <p>
-              {t("login.demoEmail")} <span className="font-mono">demo@lexoffice.de</span>
-            </p>
-            <p>
-              {t("login.demoPassword")} <span className="font-mono">demo1234</span>
-            </p>
-          </div>
         </div>
       </div>
     </div>
