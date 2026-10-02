@@ -93,15 +93,18 @@ export default async function InvoicesPage({
 
       <Card>
         <CardContent className="p-0">
-          <Table>
+          <Table bordered>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">{t("common.no")}</TableHead>
                 <TableHead>{t("invoices.number")}</TableHead>
                 <TableHead>{t("common.customer")}</TableHead>
                 <TableHead>{t("invoices.issued")}</TableHead>
-                <TableHead>{t("invoices.due")}</TableHead>
+                <TableHead className="hidden lg:table-cell">{t("invoices.due")}</TableHead>
                 <TableHead>{t("common.status")}</TableHead>
-                <TableHead className="text-right">{t("common.net")}</TableHead>
+                <TableHead className="hidden text-right sm:table-cell">
+                  {t("common.net")}
+                </TableHead>
                 <TableHead className="text-right">{t("common.gross")}</TableHead>
                 <TableHead />
               </TableRow>
@@ -109,14 +112,15 @@ export default async function InvoicesPage({
             <TableBody>
               {invoices.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="py-12 text-center text-muted-foreground">
                     <FileText className="mx-auto mb-2 h-8 w-8 opacity-40" />
                     {t("invoices.empty")}
                   </TableCell>
                 </TableRow>
               ) : (
-                invoices.map((invoice) => (
+                invoices.map((invoice, index) => (
                   <TableRow key={invoice.id}>
+                    <TableCell className="text-muted-foreground">{index + 1}</TableCell>
                     <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
                     <TableCell>
                       <div className="font-medium">{invoice.customer.name}</div>
@@ -127,13 +131,13 @@ export default async function InvoicesPage({
                     <TableCell className="text-muted-foreground">
                       {formatDate(invoice.issueDate)}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="hidden text-muted-foreground lg:table-cell">
                       {formatDate(invoice.dueDate)}
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={invoice.status} />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="hidden text-right sm:table-cell">
                       {formatCurrency(invoice.subtotalNet)}
                     </TableCell>
                     <TableCell className="text-right font-medium">

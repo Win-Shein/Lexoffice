@@ -25,6 +25,11 @@ enum TaxType {
   EXEMPT_0 // 0% (Kleinunternehmer / Export)
 }
 
+enum CategoryType {
+  ITEM
+  EXPENSE
+}
+
 model User {
   id           String         @id @default(uuid())
   email        String         @unique
@@ -45,6 +50,8 @@ model User {
   invoiceSeq   Int            @default(0) // running number counter
   invoices     Invoice[]
   expenses     Expense[]
+  items        Item[]
+  categories   Category[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 }
@@ -105,6 +112,31 @@ model InvoiceItem {
   unitPrice   Float
   totalNet    Float
   taxType     TaxType @default(STANDARD_19)
+}
+
+model Category {
+  id        String       @id @default(uuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  name      String
+  type      CategoryType
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([userId, type, name])
+}
+
+model Item {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  name        String
+  category    String   @default("Sonstiges")
+  unit        String   @default("Stück")
+  unitPrice   Float
+  taxType     TaxType  @default(STANDARD_19)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Expense {

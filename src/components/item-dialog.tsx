@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { createExpense } from "@/actions/expense";
+import { createItem, updateItem } from "@/actions/item";
 import { useI18n } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,53 +27,54 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const CATEGORIES_FALLBACK = [
-  "Software",
-  "Miete",
-  "Bewirtung",
-  "Ausstattung",
-  "Infrastruktur",
-  "Reise",
-  "Beratung",
-  "Marketing",
-  "Sonstiges",
-];
+export type ItemData = {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  unitPrice: number;
+  taxType: string;
+};
 
-export function ExpenseDialog({
-  trigger,
-  defaultDate,
+const CATEGORIES_FALLBACK = ["Dienstleistung", "Produkt", "Material", "Lizenz", "Sonstiges"];
+
+export function ItemDialog({
+  item,
   categories,
+  trigger,
 }: {
-  trigger: React.ReactNode;
-  defaultDate: string;
+  item?: ItemData;
   categories: string[];
+  trigger: React.ReactNode;
 }) {
   const router = useRouter();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const options = categories.length > 0 ? categories : CATEGORIES_FALLBACK;
-  const [category, setCategory] = useState(options[0] ?? "Sonstiges");
-  const [vatRate, setVatRate] = useState("19");
+  const [category, setCategory] = useState(item?.category ?? options[0]);
+  const [taxType, setTaxType] = useState(item?.taxType ?? "STANDARD_19");
+  const isEdit = Boolean(item);
 
   function onSubmit(formData: FormData) {
     const payload = {
-      description: String(formData.get("description") ?? ""),
-      vendor: String(formData.get("vendor") ?? ""),
+      name: String(formData.get("name") ?? ""),
       category,
-      documentNumber: String(formData.get("documentNumber") ?? ""),
-      amountNet: Number(String(formData.get("amountNet") ?? "0").replace(",", ".")) || 0,
-      vatRate: Number(vatRate),
-      date: String(formData.get("date") ?? defaultDate),
+      unit: String(formData.get("unit") ?? "Stück"),
+      unitPrice: Number(String(formData.get("unitPrice") ?? "0").replace(",", ".")) || 0,
+      taxType,
     };
 
     startTransition(async () => {
-      const result = await createExpense(payload);
+      const result = item
+        ? await updateItem(item.id, payload)
+        : await createItem(payload);
+
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
-      toast.success(t("expenses.created"));
+      toast.success(isEdit ? t("items.updated") : t("items.created"));
       setOpen(false);
       router.refresh();
     });
@@ -84,28 +85,18 @@ export function ExpenseDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("expenses.new")}</DialogTitle>
-          <DialogDescription>{t("expenses.formHint")}</DialogDescription>
+          <DialogTitle>{isEdit ? t("items.edit") : t("items.new")}</DialogTitle>
+          <DialogDescription>{t("items.formHint")}</DialogDescription>
         </DialogHeader>
 
         <form action={onSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="description">{t("expenses.descriptionLabel")} *</Label>
-            <Input id="description" name="description" required />
+            <Label htmlFor="name">{t("items.formName")}</Label>
+            <Input id="name" name="name" defaultValue={item?.name} required />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="vendor">{t("expenses.vendor")}</Label>
-              <Input id="vendor" name="vendor" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="documentNumber">{t("expenses.documentNumber")}</Label>
-              <Input id="documentNumber" name="documentNumber" />
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>{t("expenses.category")}</Label>
+              <Label>{t("items.category")}</Label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger>
                   <SelectValue />
@@ -120,25 +111,32 @@ export function ExpenseDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="date">{t("common.date")}</Label>
-              <Input id="date" name="date" type="date" defaultValue={defaultDate} />
+              <Label htmlFor="unit">{t("items.unit")}</Label>
+              <Input id="unit" name="unit" defaultValue={item?.unit ?? "Stück"} />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="amountNet">{t("expenses.amountNet")}</Label>
-              <Input id="amountNet" name="amountNet" inputMode="decimal" placeholder="0,00" required />
+              <Label htmlFor="unitPrice">{t("items.unitPrice")}</Label>
+              <Input
+                id="unitPrice"
+                name="unitPrice"
+                inputMode="decimal"
+                placeholder="0,00"
+                defaultValue={item ? String(item.unitPrice).replace(".", ",") : ""}
+                required
+              />
             </div>
             <div className="space-y-2">
-              <Label>{t("expenses.vatRate")}</Label>
-              <Select value={vatRate} onValueChange={setVatRate}>
+              <Label>{t("items.taxRate")}</Label>
+              <Select value={taxType} onValueChange={setTaxType}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="19">19 %</SelectItem>
-                  <SelectItem value="7">7 %</SelectItem>
-                  <SelectItem value="0">0 %</SelectItem>
+                  <SelectItem value="STANDARD_19">19 %</SelectItem>
+                  <SelectItem value="REDUCED_7">7 %</SelectItem>
+                  <SelectItem value="EXEMPT_0">0 %</SelectItem>
                 </SelectContent>
               </Select>
             </div>

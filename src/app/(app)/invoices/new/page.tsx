@@ -1,6 +1,6 @@
 import { peekNextInvoiceNumber } from "@/actions/invoice";
 import { getCurrentUser } from "@/auth";
-import { InvoiceForm, type CustomerOption } from "@/components/invoice-form";
+import { InvoiceForm, type CustomerOption, type ItemOption } from "@/components/invoice-form";
 import { PageHeader } from "@/components/page-header";
 import { prisma } from "@/lib/db";
 import { toDateInputValue } from "@/lib/format";
@@ -11,8 +11,12 @@ export default async function NewInvoicePage() {
   if (!user) return null;
 
   const { t } = await getTranslator();
-  const [customers, nextInvoiceNumber] = await Promise.all([
+  const [customers, items, nextInvoiceNumber] = await Promise.all([
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
+    prisma.item.findMany({
+      where: { userId: user.id },
+      orderBy: { name: "asc" },
+    }),
     peekNextInvoiceNumber(),
   ]);
 
@@ -26,6 +30,14 @@ export default async function NewInvoicePage() {
     vatId: customer.vatId,
   }));
 
+  const itemOptions: ItemOption[] = items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    unit: item.unit,
+    unitPrice: item.unitPrice,
+    taxType: item.taxType,
+  }));
+
   const today = new Date();
   const due = new Date();
   due.setDate(due.getDate() + 14);
@@ -35,6 +47,7 @@ export default async function NewInvoicePage() {
       <PageHeader title={t("nav.newInvoice")} description={t("invoiceForm.details")} />
       <InvoiceForm
         customers={customerOptions}
+        itemOptions={itemOptions}
         nextInvoiceNumber={nextInvoiceNumber}
         seller={{
           companyName: user.companyName ?? user.name ?? "",

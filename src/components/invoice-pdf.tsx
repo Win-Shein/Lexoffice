@@ -8,7 +8,7 @@ import {
 
 import { TaxType } from "@/generated/prisma/enums";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
-import { KLEINBETRAG_LIMIT, TAX_RATE_BY_TYPE } from "@/lib/vat";
+import { KLEINBETRAG_LIMIT } from "@/lib/vat";
 
 export type InvoicePdfSeller = {
   companyName: string;
@@ -129,6 +129,14 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     color: "#334155",
   },
+  noticeBox: {
+    marginTop: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    fontSize: 9.5,
+    fontFamily: "Helvetica-Bold",
+    color: "#78350f",
+  },
   bank: { marginTop: 22, fontSize: 8.5, color: "#475569" },
   footer: {
     position: "absolute",
@@ -150,17 +158,6 @@ function addressLine(parts: Array<string | null | undefined>) {
 
 export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
   const { seller, customer } = data;
-  const taxRates = new Map<number, { net: number; tax: number }>();
-
-  for (const item of data.items) {
-    const rate = data.isSmallBiz || data.isReverseCharge
-      ? 0
-      : TAX_RATE_BY_TYPE[item.taxType] ?? 19;
-    const entry = taxRates.get(rate) ?? { net: 0, tax: 0 };
-    entry.net += item.totalNet;
-    entry.tax += (item.totalNet * rate) / 100;
-    taxRates.set(rate, entry);
-  }
 
   const sellerAddress = addressLine([
     seller.address,
@@ -249,24 +246,6 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
             <Text>{formatCurrency(data.subtotalNet)}</Text>
           </View>
 
-          {data.isSmallBiz || data.isReverseCharge ? (
-            <View style={styles.totalsRow}>
-              <Text style={styles.muted}>
-                {data.isSmallBiz ? "Umsatzsteuer (§19 UStG)" : "Umsatzsteuer (Reverse Charge)"}
-              </Text>
-              <Text>{formatCurrency(0)}</Text>
-            </View>
-          ) : (
-            Array.from(taxRates.entries()).map(([rate, entry]) => (
-              <View style={styles.totalsRow} key={rate}>
-                <Text style={styles.muted}>
-                  USt {rate}% auf {formatCurrency(entry.net)}
-                </Text>
-                <Text>{formatCurrency(entry.tax)}</Text>
-              </View>
-            ))
-          )}
-
           <View style={styles.totalsGrand}>
             <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 10.5 }}>
               Gesamtbetrag
@@ -278,8 +257,8 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
         </View>
 
         {data.isSmallBiz ? (
-          <View style={styles.notice}>
-            <Text>Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.</Text>
+          <View style={styles.noticeBox}>
+            <Text>*Umsatzsteuerfreie Leistungen gemäß §19 UStG.</Text>
           </View>
         ) : null}
 

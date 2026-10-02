@@ -19,7 +19,7 @@ import {
 import { prisma } from "@/lib/db";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import { getTranslator } from "@/lib/i18n/server";
-import { KLEINBETRAG_LIMIT, TAX_RATE_BY_TYPE } from "@/lib/vat";
+import { KLEINBETRAG_LIMIT } from "@/lib/vat";
 
 export default async function InvoiceDetailPage({
   params,
@@ -36,17 +36,6 @@ export default async function InvoiceDetailPage({
   });
 
   if (!invoice) notFound();
-
-  const taxRates = new Map<number, { net: number; tax: number }>();
-  for (const item of invoice.items) {
-    const rate = invoice.isSmallBiz || invoice.isReverseCharge
-      ? 0
-      : TAX_RATE_BY_TYPE[item.taxType] ?? 19;
-    const entry = taxRates.get(rate) ?? { net: 0, tax: 0 };
-    entry.net += item.totalNet;
-    entry.tax += (item.totalNet * rate) / 100;
-    taxRates.set(rate, entry);
-  }
 
   return (
     <div className="space-y-6">
@@ -125,7 +114,9 @@ export default async function InvoiceDetailPage({
                   <TableRow>
                     <TableHead>{t("invoiceDetail.description")}</TableHead>
                     <TableHead className="text-right">{t("invoiceForm.quantity")}</TableHead>
-                    <TableHead className="text-right">{t("invoiceForm.unitPrice")}</TableHead>
+                    <TableHead className="hidden text-right sm:table-cell">
+                      {t("invoiceForm.unitPrice")}
+                    </TableHead>
                     <TableHead className="text-right">{t("common.total")}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -136,7 +127,7 @@ export default async function InvoiceDetailPage({
                       <TableCell className="text-right">
                         {formatNumber(item.quantity)} {item.unit}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="hidden text-right sm:table-cell">
                         {formatCurrency(item.unitPrice)}
                       </TableCell>
                       <TableCell className="text-right font-medium">
@@ -152,23 +143,6 @@ export default async function InvoiceDetailPage({
                   <span className="text-muted-foreground">{t("common.subtotal")}</span>
                   <span>{formatCurrency(invoice.subtotalNet)}</span>
                 </div>
-                {invoice.isSmallBiz || invoice.isReverseCharge ? (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {invoice.isSmallBiz
-                        ? t("invoiceDetail.vatSmallBiz")
-                        : t("invoiceDetail.vatReverseCharge")}
-                    </span>
-                    <span>{formatCurrency(0)}</span>
-                  </div>
-                ) : (
-                  Array.from(taxRates.entries()).map(([rate, entry]) => (
-                    <div className="flex justify-between" key={rate}>
-                      <span className="text-muted-foreground">USt {rate} %</span>
-                      <span>{formatCurrency(entry.tax)}</span>
-                    </div>
-                  ))
-                )}
                 <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                   <span>{t("common.total")}</span>
                   <span>{formatCurrency(invoice.totalGross)}</span>

@@ -47,7 +47,7 @@ export function buildDatevCsv(
     "",
     meta.consultantNumber ?? "1000000",
     meta.clientNumber ?? "1",
-    "Mustermann",
+    "MMXeron",
     "2026010100000000",
     "0",
     "EUR",

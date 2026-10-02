@@ -43,13 +43,14 @@ export default async function CustomersPage() {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
+          <Table bordered>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">{t("common.no")}</TableHead>
                 <TableHead>{t("customers.name")}</TableHead>
-                <TableHead>{t("common.email")}</TableHead>
+                <TableHead className="hidden md:table-cell">{t("common.email")}</TableHead>
                 <TableHead>{t("common.city")}</TableHead>
-                <TableHead>{t("common.vatId")}</TableHead>
+                <TableHead className="hidden lg:table-cell">{t("common.vatId")}</TableHead>
                 <TableHead className="text-right">{t("customers.invoiceCount")}</TableHead>
                 <TableHead />
               </TableRow>
@@ -57,22 +58,23 @@ export default async function CustomersPage() {
             <TableBody>
               {customers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
                     <Users className="mx-auto mb-2 h-8 w-8 opacity-40" />
                     {t("customers.empty")}
                   </TableCell>
                 </TableRow>
               ) : (
-                customers.map((customer) => (
+                customers.map((customer, index) => (
                   <TableRow key={customer.id}>
+                    <TableCell className="text-muted-foreground">{index + 1}</TableCell>
                     <TableCell className="font-medium">{customer.name}</TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="hidden text-muted-foreground md:table-cell">
                       {customer.email ?? "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {[customer.postalCode, customer.city].filter(Boolean).join(" ") || "—"}
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
+                    <TableCell className="hidden font-mono text-xs text-muted-foreground lg:table-cell">
                       {customer.vatId ?? "—"}
                     </TableCell>
                     <TableCell className="text-right">{customer._count.invoices}</TableCell>

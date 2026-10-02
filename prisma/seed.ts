@@ -4,6 +4,7 @@ import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import bcrypt from "bcryptjs";
 
 import { PrismaClient } from "../src/generated/prisma/client";
+import { CategoryType } from "../src/generated/prisma/enums";
 
 const adapter = new PrismaBetterSqlite3({
   url: process.env.DATABASE_URL ?? "file:./dev.db",
@@ -20,12 +21,12 @@ async function main() {
 
   const user = await prisma.user.upsert({
     where: { email },
-    update: {},
+    update: { name: null, companyName: "MMXeron" },
     create: {
       email,
-      name: "Max Mustermann",
+      name: null,
       passwordHash,
-      companyName: "Mustermann Design GmbH",
+      companyName: "MMXeron",
       address: "Musterstraße 12",
       city: "Berlin",
       postalCode: "10115",
@@ -44,6 +45,30 @@ async function main() {
   await prisma.expense.deleteMany({ where: { userId: user.id } });
   await prisma.invoice.deleteMany({ where: { userId: user.id } });
   await prisma.customer.deleteMany({});
+  await prisma.category.deleteMany({ where: { userId: user.id } });
+
+  await prisma.category.createMany({
+    data: [
+      ...[
+        "Dienstleistung",
+        "Produkt",
+        "Material",
+        "Lizenz",
+        "Sonstiges",
+      ].map((name) => ({ userId: user.id, name, type: CategoryType.ITEM })),
+      ...[
+        "Software",
+        "Miete",
+        "Bewirtung",
+        "Ausstattung",
+        "Infrastruktur",
+        "Reise",
+        "Beratung",
+        "Marketing",
+        "Sonstiges",
+      ].map((name) => ({ userId: user.id, name, type: CategoryType.EXPENSE })),
+    ],
+  });
 
   const acme = await prisma.customer.create({
     data: {

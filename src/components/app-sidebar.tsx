@@ -4,7 +4,7 @@ import {
   FileText,
   LayoutDashboard,
   LogOut,
-  Plus,
+  Package,
   Receipt,
   Settings,
   Users,
@@ -19,26 +19,31 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+const COPYRIGHT_YEAR = new Date().getFullYear();
+
 const NAV_ITEMS = [
   { href: "/dashboard", key: "nav.dashboard", icon: LayoutDashboard },
   { href: "/invoices", key: "nav.invoices", icon: FileText },
   { href: "/customers", key: "nav.customers", icon: Users },
+  { href: "/items", key: "nav.items", icon: Package },
   { href: "/expenses", key: "nav.expenses", icon: Receipt },
   { href: "/settings", key: "nav.settings", icon: Settings },
 ] as const;
 
-export function AppSidebar({
+export function SidebarContent({
   userName,
   companyName,
+  onNavigate,
 }: {
   userName: string;
   companyName: string;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const { t } = useI18n();
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-sidebar md:flex">
+    <div className="flex h-full flex-col">
       <div className="flex h-16 items-center gap-2 border-b border-border px-5">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <FileText className="h-4 w-4" />
@@ -46,15 +51,7 @@ export function AppSidebar({
         <span className="text-base font-semibold">MMXeron</span>
       </div>
 
-      <div className="p-4">
-        <Button asChild className="w-full justify-start">
-          <Link href="/invoices/new">
-            <Plus className="h-4 w-4" /> {t("nav.newInvoice")}
-          </Link>
-        </Button>
-      </div>
-
-      <nav className="flex-1 space-y-1 px-3">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 pt-4">
         {NAV_ITEMS.map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -63,6 +60,7 @@ export function AppSidebar({
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 active
@@ -78,15 +76,13 @@ export function AppSidebar({
       </nav>
 
       <div className="border-t border-border p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-              {userName.slice(0, 1).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{userName}</p>
-              <p className="truncate text-xs text-muted-foreground">{companyName}</p>
-            </div>
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+            {userName.slice(0, 1).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{userName}</p>
+            <p className="truncate text-xs text-muted-foreground">{companyName}</p>
           </div>
         </div>
         <div className="mb-3 flex items-center justify-between">
@@ -102,7 +98,24 @@ export function AppSidebar({
             <LogOut className="h-4 w-4" /> {t("nav.signOut")}
           </Button>
         </form>
+        <p className="mt-3 text-center text-[10px] text-muted-foreground">
+          {t("common.copyright", { year: COPYRIGHT_YEAR })}
+        </p>
       </div>
+    </div>
+  );
+}
+
+export function AppSidebar({
+  userName,
+  companyName,
+}: {
+  userName: string;
+  companyName: string;
+}) {
+  return (
+    <aside className="hidden w-64 shrink-0 border-r border-border bg-sidebar md:flex md:flex-col">
+      <SidebarContent userName={userName} companyName={companyName} />
     </aside>
   );
 }

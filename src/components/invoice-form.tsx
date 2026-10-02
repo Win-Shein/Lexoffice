@@ -56,6 +56,14 @@ export type CustomerOption = {
   vatId: string | null;
 };
 
+export type ItemOption = {
+  id: string;
+  name: string;
+  unit: string;
+  unitPrice: number;
+  taxType: TaxType;
+};
+
 export type SellerInfo = InvoicePdfSeller;
 
 type FormItem = {
@@ -86,11 +94,13 @@ function emptyItem(): FormItem {
 
 export function InvoiceForm({
   customers,
+  itemOptions,
   seller,
   nextInvoiceNumber,
   defaults,
 }: {
   customers: CustomerOption[];
+  itemOptions: ItemOption[];
   seller: SellerInfo & { isSmallBiz: boolean };
   nextInvoiceNumber: string;
   defaults: { issueDate: string; dueDate: string; performanceDate: string };
@@ -190,6 +200,22 @@ export function InvoiceForm({
     setItems((current) =>
       current.map((item) => (item.key === key ? { ...item, ...patch } : item)),
     );
+  }
+
+  function addFromItem(id: string) {
+    const option = itemOptions.find((entry) => entry.id === id);
+    if (!option) return;
+    setItems((current) => [
+      ...current,
+      {
+        key: Math.random().toString(36).slice(2),
+        description: option.name,
+        quantity: "1",
+        unit: option.unit,
+        unitPrice: option.unitPrice ? String(option.unitPrice).replace(".", ",") : "",
+        taxType: option.taxType,
+      },
+    ]);
   }
 
   function submit(status: InvoiceStatus) {
@@ -304,14 +330,30 @@ export function InvoiceForm({
         <Card>
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base">{t("invoiceForm.items")}</CardTitle>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setItems((current) => [...current, emptyItem()])}
-            >
-              <Plus className="h-4 w-4" /> {t("invoiceForm.addItem")}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              {itemOptions.length > 0 ? (
+                <Select value="" onValueChange={addFromItem}>
+                  <SelectTrigger className="w-[190px]">
+                    <SelectValue placeholder={t("invoiceForm.selectItem")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {itemOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setItems((current) => [...current, emptyItem()])}
+              >
+                <Plus className="h-4 w-4" /> {t("invoiceForm.addItem")}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {items.map((item, index) => (
@@ -525,12 +567,6 @@ export function InvoiceForm({
               <span className="text-muted-foreground">{t("common.subtotal")}</span>
               <span>{formatCurrency(totals.subtotalNet)}</span>
             </div>
-            {totals.breakdown.map((entry) => (
-              <div key={entry.taxType} className="flex justify-between">
-                <span className="text-muted-foreground">USt {entry.rate} %</span>
-                <span>{formatCurrency(entry.tax)}</span>
-              </div>
-            ))}
             <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
               <span>{t("common.total")}</span>
               <span>{formatCurrency(totals.totalGross)}</span>

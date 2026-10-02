@@ -111,7 +111,7 @@ export default async function DashboardPage() {
                 <TableRow>
                   <TableHead>{t("nav.invoices")}</TableHead>
                   <TableHead>{t("common.customer")}</TableHead>
-                  <TableHead>{t("common.date")}</TableHead>
+                  <TableHead className="hidden sm:table-cell">{t("common.date")}</TableHead>
                   <TableHead>{t("common.status")}</TableHead>
                   <TableHead className="text-right">{t("common.total")}</TableHead>
                 </TableRow>
@@ -137,7 +137,7 @@ export default async function DashboardPage() {
                       <TableCell className="text-muted-foreground">
                         {invoice.customer.name}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="hidden text-muted-foreground sm:table-cell">
                         {formatDate(invoice.issueDate)}
                       </TableCell>
                       <TableCell>

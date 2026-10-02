@@ -28,6 +28,8 @@ Compliant with **UStG §14** (Pflichtangaben), **GoBD**, **§19 UStG** (Kleinunt
 - **Backup & restore** – download all data as JSON (`/api/export/backup`) and
   restore it from a file in Settings.
 - **Change password** – bcrypt‑verified password update in Settings.
+- **Responsive** – mobile drawer navigation (slide‑over) and adaptive tables
+  that hide secondary columns on small screens.
 
 ## Getting started
 
